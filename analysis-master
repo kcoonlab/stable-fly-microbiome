@@ -16,7 +16,7 @@ library(tidyverse)
 library(plyr)
 library(dplyr) # load plyr, then dplyr in that order
 
-# Read in phyloseq object
+# Read in phyloseq object, ensure data format is consistent across sample metadata
 ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
 sample_data(ps)$SampleID <- row.names(sample_data(ps))
 sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.9.21"] <- "7.9.2021"
@@ -41,8 +41,7 @@ sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.9.21"] <- "9.9.2
 sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.15.21"] <- "9.15.2021"
 ps
 
-#Drop samples with less than 100 total reads
-
+# Drop samples with less than 100 total reads
 ps <- subset_samples(ps, sample_sums(ps)>100) 
 
 # Drop the OTUs that have zeros across all samples
@@ -52,8 +51,9 @@ ps = subset_taxa(ps,taxa_sums(ps)>0)
 SamDat = data.frame(sample_data(ps))
 SamDat$SampleID = row.names(SamDat)
 
+#### Descriptive stats ####
+
 #### Generate Breakaway Richness Estimates ####
-#tutorial: https://adw96.github.io/breakaway/articles/breakaway.html
 
 # Set OTU table
 otu_data = t(otu_table(ps))
@@ -86,7 +86,7 @@ df = df[df$Error>0.01,]
 RichPlot3 = merge(SamDat,df,by="SampleID")
 head(RichPlot3)
 
-#### Goal: summarize the estimates across different sample types (internal flies, external flies, manure) within each facility (Arlington, DCC)
+#### Goal: Summarize the estimates across different sample types (internal flies, external flies, manure) within each facility (Arlington, DCC)
 
 # First, make a single variable that has both of those elements
 RichPlot3$Comp = paste(RichPlot3$location,RichPlot3$sample.type)
@@ -144,7 +144,7 @@ p = p + ylab("Richness estimate")
 p = p + ggtitle("DCC")
 p
 
-#### Goal: summarize the estimates across different sample types/sampling dates (Arlington samples only)
+#### Goal: Summarize the estimates across different sample types/sampling dates (Arlington samples only)
 
 # First, make a single variable that contains all of these elements
 RichPlot3Arlington = RichPlot3[RichPlot3$location=="Arlington",]
@@ -188,7 +188,7 @@ p = p + ylab("Richness estimate")
 p = p + ggtitle("Arlington")
 p
 
-#### Goal: summarize the estimates across different sample types/sampling dates (DCC samples only)
+#### Goal: Summarize the estimates across different sample types/sampling dates (DCC samples only)
 #### Start with manure samples
 RichPlot3DCCManure = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Manure",]
 RichPlot3DCCManure$sampling.date = as.factor(RichPlot3DCCManure$sampling.date)

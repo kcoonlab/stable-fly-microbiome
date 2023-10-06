@@ -1,0 +1,2152 @@
+set.seed(123456)
+
+# Load required packages
+
+# install.packages("devtools")
+# devtools::install_github("adw96/breakaway")
+library(breakaway)
+# You may need to update Breakaway and then close and reopen R
+
+# if(!requireNamespace("BiocManager")){
+#   install.packages("BiocManager")
+# }
+# BiocManager::install("phyloseq")
+library(phyloseq)
+library(tidyverse)
+library(plyr)
+library(dplyr) # load plyr, then dplyr in that order
+
+# Read in phyloseq object
+ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
+sample_data(ps)$SampleID <- row.names(sample_data(ps))
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.9.21"] <- "7.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.16.21"] <- "7.16.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.23.21"] <- "7.23.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.30.21"] <- "7.30.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.6.21"] <- "8.6.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.13.21"] <- "8.13.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.20.21"] <- "8.20.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.27.21"] <- "8.27.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.10.21"] <- "9.10.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.8.21"] <- "7.8.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.15.21"] <- "7.15.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.22.21"] <- "7.22.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.29.21"] <- "7.29.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.5.21"] <- "8.5.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.12.21"] <- "8.12.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.19.21"] <- "8.19.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.26.21"] <- "8.26.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.2.21"] <- "9.2.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.9.21"] <- "9.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.15.21"] <- "9.15.2021"
+ps
+
+#Drop samples with less than 100 total reads
+
+ps <- subset_samples(ps, sample_sums(ps)>100) 
+
+# Drop the OTUs that have zeros across all samples
+ps = subset_taxa(ps,taxa_sums(ps)>0)
+
+# Collect sample data
+SamDat = data.frame(sample_data(ps))
+SamDat$SampleID = row.names(SamDat)
+
+#### Generate Breakaway Richness Estimates ####
+#tutorial: https://adw96.github.io/breakaway/articles/breakaway.html
+
+# Set OTU table
+otu_data = t(otu_table(ps))
+# Set sample data
+meta_data = sample_data(ps)
+# Flip OTU table so rownames match sample data
+head(colnames(otu_data) == rownames(meta_data))
+
+# Run Breakaway's frequency table list function
+frequencytablelist = build_frequency_count_tables(otu_data)
+
+# Run the richness estimator (breakaway) on all our samples (lists of frequency tables)
+RichEsts = lapply(frequencytablelist,breakaway)
+
+# Pull out the estimates, errors, and the model
+Estimate = as.matrix(map(RichEsts, "estimate"))
+Error = as.matrix(map(RichEsts, "error"))
+Model = as.matrix(map(RichEsts, "model"))
+df = data.frame(Estimate,Error,Model)
+
+# Add sample ID column, estimate, and error
+df$SampleID = row.names(df)
+df$Estimate=as.numeric(df$Estimate)
+df$Error=as.numeric(df$Error)
+
+#Remove rows where error is equal to zero
+df = df[df$Error>0.01,]
+
+# Merge the estimates with the sample data
+RichPlot3 = merge(SamDat,df,by="SampleID")
+head(RichPlot3)
+
+#### Goal: summarize the estimates across different sample types (internal flies, external flies, manure) within each facility (Arlington, DCC)
+
+# First, make a single variable that has both of those elements
+RichPlot3$Comp = paste(RichPlot3$location,RichPlot3$sample.type)
+RichPlot3$Comp = as.factor(RichPlot3$Comp)
+head(RichPlot3)
+
+# Create an empty data frame that will hold the output data
+RichPlotSumm = data.frame(Comp=levels(RichPlot3$Comp))
+RichPlotSumm$Estimate = 0
+RichPlotSumm$Error = 0
+RichPlotSumm$p = 0
+head(RichPlotSumm)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3$Comp)){
+  d = RichPlot3[RichPlot3$Comp==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSumm[RichPlotSumm$Comp==i,]$Estimate = Betta$table[,1]
+  RichPlotSumm[RichPlotSumm$Comp==i,]$Error = Betta$table[,2]
+  RichPlotSumm[RichPlotSumm$Comp==i,]$p = Betta$table[,3]
+}
+
+# Pull out sample type and facilty from the Comp variable so we can use them as plotting variables
+lst <- strsplit(RichPlotSumm$Comp,' ')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+RichPlotSumm$facility = v1
+RichPlotSumm$sample.type = v2
+RichPlotSumm
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+# Arlington plot first
+RichPlotSummArlington = RichPlotSumm[RichPlotSumm$facility=="Arlington",]
+RichPlotSummArlington
+RichPlotSummArlington$sample.type = factor(RichPlotSummArlington$sample.type, levels = c("Endo","Ecto","Manure"))
+p = ggplot(RichPlotSummArlington,aes(y=Estimate,x=sample.type))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington")
+p
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+# Now DCC
+RichPlotSummDCC = RichPlotSumm[RichPlotSumm$facility=="DCC",]
+RichPlotSummDCC
+RichPlotSummDCC$sample.type = factor(RichPlotSummDCC$sample.type, levels = c("Endo","Ecto","Manure"))
+p = ggplot(RichPlotSummDCC,aes(y=Estimate,x=sample.type))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("DCC")
+p
+
+#### Goal: summarize the estimates across different sample types/sampling dates (Arlington samples only)
+
+# First, make a single variable that contains all of these elements
+RichPlot3Arlington = RichPlot3[RichPlot3$location=="Arlington",]
+RichPlot3Arlington$Comp = paste(RichPlot3Arlington$sampling.date,RichPlot3Arlington$sample.type)
+RichPlot3Arlington$Comp = as.factor(RichPlot3Arlington$Comp)
+head(RichPlot3Arlington)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlington = data.frame(Comp=levels(RichPlot3Arlington$Comp))
+RichPlotSummArlington$Estimate = 0
+RichPlotSummArlington$Error = 0
+RichPlotSummArlington$p = 0
+head(RichPlotSummArlington)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3Arlington$Comp)){
+  d = RichPlot3Arlington[RichPlot3Arlington$Comp==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlington[RichPlotSummArlington$Comp==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlington[RichPlotSummArlington$Comp==i,]$Error = Betta$table[,2]
+  RichPlotSummArlington[RichPlotSummArlington$Comp==i,]$p = Betta$table[,3]
+}
+
+# Pull out elements from the Comp variable so we can use them as plotting variables
+lst <- strsplit(RichPlotSummArlington$Comp,' ')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+RichPlotSummArlington$sampling.date = v1
+RichPlotSummArlington$sample.type = v2
+RichPlotSummArlington
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlington$sampling.date = factor(RichPlotSummArlington$sampling.date, levels = c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
+RichPlotSummArlington$sample.type = factor(RichPlotSummArlington$sample.type, levels = c("Endo","Ecto","Manure"))
+p = ggplot(RichPlotSummArlington,aes(y=Estimate,x=sampling.date,color=sample.type))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington")
+p
+
+#### Goal: summarize the estimates across different sample types/sampling dates (DCC samples only)
+#### Start with manure samples
+RichPlot3DCCManure = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Manure",]
+RichPlot3DCCManure$sampling.date = as.factor(RichPlot3DCCManure$sampling.date)
+head(RichPlot3DCCManure)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummDCCManure = data.frame(sampling.date=levels(RichPlot3DCCManure$sampling.date))
+RichPlotSummDCCManure$Estimate = 0
+RichPlotSummDCCManure$Error = 0
+RichPlotSummDCCManure$p = 0
+head(RichPlotSummDCCManure)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3DCCManure$sampling.date)){
+  d = RichPlot3DCCManure[RichPlot3DCCManure$sampling.date==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummDCCManure[RichPlotSummDCCManure$sampling.date==i,]$Estimate = Betta$table[,1]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$sampling.date==i,]$Error = Betta$table[,2]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$sampling.date==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummDCCManure$sampling.date = factor(RichPlotSummDCCManure$sampling.date, levels = c("7.8.2021","7.15.2021","7.22.2021","7.29.2021","8.5.2021","8.12.2021","8.19.2021","8.26.2021","9.2.2021","9.9.2021","9.15.2021"))
+p = ggplot(RichPlotSummDCCManure,aes(y=Estimate,x=sampling.date))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("DCC")
+p
+
+#### Now endo samples (for dates having at least three independent pools)
+
+RichPlot3DCCEndo = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Endo",]
+RichPlot3DCCEndo = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date=="7.15.2021"|RichPlot3DCCEndo$sampling.date=="7.22.2021",]
+RichPlot3DCCEndo$sampling.date = as.factor(RichPlot3DCCEndo$sampling.date)
+head(RichPlot3DCCEndo)
+RichPlotSummDCCEndo = data.frame(sampling.date=levels(RichPlot3DCCEndo$sampling.date))
+RichPlotSummDCCEndo$Estimate = 0
+RichPlotSummDCCEndo$Error = 0
+RichPlotSummDCCEndo$p = 0
+head(RichPlotSummDCCEndo)
+for (i in levels(RichPlot3DCCEndo$sampling.date)){
+  d = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummDCCEndo[RichPlotSummDCCEndo$sampling.date==i,]$Estimate = Betta$table[,1]
+  RichPlotSummDCCEndo[RichPlotSummDCCEndo$sampling.date==i,]$Error = Betta$table[,2]
+  RichPlotSummDCCEndo[RichPlotSummDCCEndo$sampling.date==i,]$p = Betta$table[,3]
+}
+RichPlotSummDCCEndo$sampling.date = factor(RichPlotSummDCCEndo$sampling.date, levels = c("7.15.2021","7.22.2021"))
+p = ggplot(RichPlotSummDCCEndo,aes(y=Estimate,x=sampling.date))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("DCC")
+p
+
+#### Now endo samples (for dates having less than three independent pools)
+RichPlot3DCCEndo = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Endo",]
+RichPlot3DCCEndo = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date!="7.15.2021",]
+RichPlot3DCCEndo = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date!="7.22.2021",]
+RichPlot3DCCEndo$sampling.date = as.factor(RichPlot3DCCEndo$sampling.date)
+RichPlot3DCCEndo
+x=c(1:5) #7.8.2021,7.29.2021,8.5.2021,9.9.2021,9.15.2021
+y=c(21.25279,33.07883,181.07717,73.04119,36.04553)
+plot(x,y)
+
+#### Now ecto samples (all dates have less than three independent pools)
+RichPlot3DCCEcto = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Ecto",]
+RichPlot3DCCEcto$sampling.date = as.factor(RichPlot3DCCEcto$sampling.date)
+RichPlot3DCCEcto
+x=c(1:4) #7.22.2021,7.29.2021,8.5.2021,9.9.2021
+y=c(19.09134,14.02042,66.40300,20.26297)
+plot(x,y)
+
+#### Goal: summarize the estimates for each sample type across different sampling locations within a single facility 
+#### Arlington manure first
+
+RichPlot3ArlingtonManure = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type=="Manure",]
+RichPlot3ArlingtonManure$trap = as.factor(RichPlot3ArlingtonManure$trap)
+head(RichPlot3ArlingtonManure)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlingtonManure = data.frame(trap=levels(RichPlot3ArlingtonManure$trap))
+RichPlotSummArlingtonManure$Estimate = 0
+RichPlotSummArlingtonManure$Error = 0
+RichPlotSummArlingtonManure$p = 0
+head(RichPlotSummArlingtonManure)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3ArlingtonManure$trap)){
+  d = RichPlot3ArlingtonManure[RichPlot3ArlingtonManure$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlingtonManure[RichPlotSummArlingtonManure$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlingtonManure[RichPlotSummArlingtonManure$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummArlingtonManure[RichPlotSummArlingtonManure$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlingtonManure$trap = factor(RichPlotSummArlingtonManure$trap, levels = c("Arl-M1","Arl-M2","Arl-M3","Arl-M4","Arl-M5","Arl-sickpen"))
+p = ggplot(RichPlotSummArlingtonManure,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington Manure")
+p
+
+#### Now Arlington flies (internal samples)
+
+RichPlot3ArlingtonFlies = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type!="Manure",]
+RichPlot3ArlingtonFlies = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$sample.type=="Endo",]
+RichPlot3ArlingtonFlies$trap = as.factor(RichPlot3ArlingtonFlies$trap)
+head(RichPlot3ArlingtonFlies)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlingtonFlies = data.frame(trap=levels(RichPlot3ArlingtonFlies$trap))
+RichPlotSummArlingtonFlies$Estimate = 0
+RichPlotSummArlingtonFlies$Error = 0
+RichPlotSummArlingtonFlies$p = 0
+head(RichPlotSummArlingtonFlies)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3ArlingtonFlies$trap)){
+  d = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlingtonFlies$trap = factor(RichPlotSummArlingtonFlies$trap, levels = c("B1-East","B1-West","B2-East","B2-West"))
+p = ggplot(RichPlotSummArlingtonFlies,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington Flies (Internal)")
+p
+
+#### Now Arlington flies (external samples)
+
+RichPlot3ArlingtonFlies = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type!="Manure",]
+RichPlot3ArlingtonFlies = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$sample.type=="Ecto",]
+RichPlot3ArlingtonFlies$trap = as.factor(RichPlot3ArlingtonFlies$trap)
+head(RichPlot3ArlingtonFlies)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlingtonFlies = data.frame(trap=levels(RichPlot3ArlingtonFlies$trap))
+RichPlotSummArlingtonFlies$Estimate = 0
+RichPlotSummArlingtonFlies$Error = 0
+RichPlotSummArlingtonFlies$p = 0
+head(RichPlotSummArlingtonFlies)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3ArlingtonFlies$trap)){
+  d = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlingtonFlies$trap = factor(RichPlotSummArlingtonFlies$trap, levels = c("B1-East","B1-West","B2-East","B2-West"))
+p = ggplot(RichPlotSummArlingtonFlies,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington Flies (External)")
+p
+
+#### Now DCC manure 
+RichPlot3DCCManure = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Manure",]
+RichPlot3DCCManure$trap = as.factor(RichPlot3DCCManure$trap)
+head(RichPlot3DCCManure)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummDCCManure = data.frame(trap=levels(RichPlot3DCCManure$trap))
+RichPlotSummDCCManure$Estimate = 0
+RichPlotSummDCCManure$Error = 0
+RichPlotSummDCCManure$p = 0
+head(RichPlotSummDCCManure)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3DCCManure$trap)){
+  d = RichPlot3DCCManure[RichPlot3DCCManure$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummDCCManure[RichPlotSummDCCManure$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummDCCManure$trap = factor(RichPlotSummDCCManure$trap, levels = c("DCC-Q1","DCC-Q2","DCC-Q3","DCC-Q4","DCC-Outdoor"))
+p = ggplot(RichPlotSummDCCManure,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("DCC Manure")
+p
+
+# Load packages
+library(phyloseq)
+library(vegan)
+library(ggplot2)
+library(ggpubr)
+library(magrittr)
+library(DescTools) # for Dunnett's test
+
+# Normalize ps to relative abundances.
+ps.norm = transform_sample_counts(ps, function(x) x / sum(x) )
+# rename for ease of use.
+ps = ps.norm
+
+#### PCoA to compare communities in different sample types from each facility ####
+#### Arlington samples first
+
+# Create PCoA ordination
+ps.arlington <- subset_samples(ps, location=="Arlington")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
+
+#### Now DCC samples
+
+# Create PCoA ordination
+ps.dcc <- subset_samples(ps, location=="DCC")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
+
+#### PCoA to compare communities in different sample types across sampling dates within each facility ####
+#### Arlington samples first
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.9.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p1 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p1 = p1 + theme_bw() + geom_point(size =1.5)
+p1 = p1 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p1 = p1 + theme(legend.text = element_text(size = 10))
+p1$layers = p1$layers[-1] #to remove the larger point coded in original plot
+p1
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.16.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p2 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p2 = p2 + theme_bw() + geom_point(size =1.5)
+p2 = p2 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p2 = p2 + theme(legend.text = element_text(size = 10))
+p2$layers = p2$layers[-1] #to remove the larger point coded in original plot
+p2
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.23.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p3 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p3 = p3 + theme_bw() + geom_point(size =1.5)
+p3 = p3 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p3 = p3 + theme(legend.text = element_text(size = 10))
+p3$layers = p3$layers[-1] #to remove the larger point coded in original plot
+p3
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.30.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p4 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p4 = p4 + theme_bw() + geom_point(size =1.5)
+p4 = p4 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p4 = p4 + theme(legend.text = element_text(size = 10))
+p4$layers = p4$layers[-1] #to remove the larger point coded in original plot
+p4
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.6.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p5 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p5 = p5 + theme_bw() + geom_point(size =1.5)
+p5 = p5 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p5 = p5 + theme(legend.text = element_text(size = 10))
+p5$layers = p5$layers[-1] #to remove the larger point coded in original plot
+p5
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.13.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p6 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p6 = p6 + theme_bw() + geom_point(size =1.5)
+p6 = p6 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p6 = p6 + theme(legend.text = element_text(size = 10))
+p6$layers = p6$layers[-1] #to remove the larger point coded in original plot
+p6
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.20.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p7 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p7 = p7 + theme_bw() + geom_point(size =1.5)
+p7 = p7 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p7 = p7 + theme(legend.text = element_text(size = 10))
+p7$layers = p7$layers[-1] #to remove the larger point coded in original plot
+p7
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.27.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p8 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p8 = p8 + theme_bw() + geom_point(size =1.5)
+p8 = p8 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p8 = p8 + theme(legend.text = element_text(size = 10))
+p8$layers = p8$layers[-1] #to remove the larger point coded in original plot
+p8
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="9.10.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p9 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p9 = p9 + theme_bw() + geom_point(size =1.5)
+p9 = p9 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34",  #Endo
+                                      "#19468C",  #Ecto
+                                      "#B75463"), #Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p9 = p9 + theme(legend.text = element_text(size = 10))
+p9$layers = p9$layers[-1] #to remove the larger point coded in original plot
+p9
+
+ggarrange(p1, p2, p3, p4, p5, p6, p7, p8, p9 + rremove("x.text"), 
+          labels = c("Jul9", "Jul16", "Jul23", "Jul30", "Aug6", "Aug13", "Aug20", "Aug27", "Sept10"),
+          ncol = 3, nrow = 3)
+
+#### Now DCC samples
+
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.8.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p1 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p1 = p1 + theme_bw() + geom_point(size =1.5)
+p1 = p1 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p1 = p1 + theme(legend.text = element_text(size = 10))
+p1$layers = p1$layers[-1] #to remove the larger point coded in original plot
+p1
+
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.15.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p2 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p2 = p2 + theme_bw() + geom_point(size =1.5)
+p2 = p2 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p2 = p2 + theme(legend.text = element_text(size = 10))
+p2$layers = p2$layers[-1] #to remove the larger point coded in original plot
+p2
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.22.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p3 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p3 = p3 + theme_bw() + geom_point(size =1.5)
+p3 = p3 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p3 = p3 + theme(legend.text = element_text(size = 10))
+p3$layers = p3$layers[-1] #to remove the larger point coded in original plot
+p3
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.29.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p4 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p4 = p4 + theme_bw() + geom_point(size =1.5)
+p4 = p4 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p4 = p4 + theme(legend.text = element_text(size = 10))
+p4$layers = p4$layers[-1] #to remove the larger point coded in original plot
+p4
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="8.5.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p5 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p5 = p5 + theme_bw() + geom_point(size =1.5)
+p5 = p5 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p5 = p5 + theme(legend.text = element_text(size = 10))
+p5$layers = p5$layers[-1] #to remove the larger point coded in original plot
+p5
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="9.9.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p6 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p6 = p6 + theme_bw() + geom_point(size =1.5)
+p6 = p6 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p6 = p6 + theme(legend.text = element_text(size = 10))
+p6$layers = p6$layers[-1] #to remove the larger point coded in original plot
+p6
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="9.15.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p7 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p7 = p7 + theme_bw() + geom_point(size =1.5)
+p7 = p7 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p7 = p7 + theme(legend.text = element_text(size = 10))
+p7$layers = p7$layers[-1] #to remove the larger point coded in original plot
+p7
+
+ggarrange(p1, p2, p3, p4, p5, p6, p7 + rremove("x.text"), 
+          labels = c("Jul8", "Jul15", "Jul22", "Jul29", "Aug5", "Sept9", "Sept15"),
+          ncol = 3, nrow = 3)
+
+#### PCoA to compare communities in different sample types across different sampling locations within a single facility ####
+#### Arlington manure first
+
+# Create PCoA ordination
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type=="Manure")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "trap", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
+
+#### Now Arlington flies
+
+# Create PCoA ordination
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type!="Manure")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "trap", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
+
+#### Now DCC manure
+
+# Create PCoA ordination
+ps.dcc <- subset_samples(ps, location=="DCC"&sample.type=="Manure")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "trap", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
+
+## PERMANOVA on BC-Dissimilaity (PCoA)
+# We want to know whether the distances between samples correspond to their source
+# Arlington samples first
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.arlington <- subset_samples(ps, location=="Arlington")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.20827
+
+# Create a function for pairwise comparisons, to test significant effects between each treatment
+pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
+{
+  co <- combn(unique(as.character(factors)),2)
+  pairs <- c()
+  Df <- c()
+  SumsOfSqs <- c()
+  F.Model <- c()
+  R2 <- c()
+  p.value <- c()
+  
+  for(elem in 1:ncol(co)){
+    if(inherits(x, 'dist')){
+      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
+                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
+    }
+    
+    else  (
+      if (sim.function == 'daisy'){
+        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
+      } 
+      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
+    )
+    
+    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
+                 permutations = perm);
+    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    Df <- c(Df,ad[1,1])
+    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
+    F.Model <- c(F.Model,ad[1,4]);
+    R2 <- c(R2,ad[1,3]);
+    p.value <- c(p.value,ad[1,5])
+  }
+  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
+  
+  sig = c(rep('',length(p.adjusted)))
+  sig[p.adjusted <= 0.05] <-'.'
+  sig[p.adjusted <= 0.01] <-'*'
+  sig[p.adjusted <= 0.001] <-'**'
+  sig[p.adjusted <= 0.0001] <-'***'
+  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
+  
+  if(!is.null(reduce)){
+    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
+    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
+    
+    sig = c(rep('',length(pairw.res$p.adjusted)))
+    sig[pairw.res$p.adjusted <= 0.1] <-'.'
+    sig[pairw.res$p.adjusted <= 0.05] <-'*'
+    sig[pairw.res$p.adjusted <= 0.01] <-'**'
+    sig[pairw.res$p.adjusted <= 0.001] <-'***'
+    pairw.res <- data.frame(pairw.res[,1:7],sig)
+  }
+  class(pairw.res) <- c("pwadonis", "data.frame")
+  return(pairw.res)
+} 
+
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$sample.type) #Endo vs Manure, P = 0.001, R2 = 0.21894951
+											#Endo vs Ecto, P = 0.001, R2 = 0.02241678
+											#Manure vs Ecto, P = 0.001, R2 = 0.27201652
+
+# Statistical comparison of disperson within each sample type
+# using betadisper, which is more robust than ANOVA of BC-Dis values
+# See Anderson (2006) for a discussion on tests of multivariate dispersion.
+# Run this separately for each treatment
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p < 0.0001
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #Endo-Ecto, p = 0.474525
+		#Manure-Ecto, p = 0.0000000
+		#Manure-Endo, p = 0.0000000
+
+# Now DCC
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.dcc <- subset_samples(ps, location=="DCC")
+DistVar = phyloseq::distance(ps.dcc, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.dcc))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.27551
+
+# Create a function for pairwise comparisons, to test significant effects between each treatment
+pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
+{
+  co <- combn(unique(as.character(factors)),2)
+  pairs <- c()
+  Df <- c()
+  SumsOfSqs <- c()
+  F.Model <- c()
+  R2 <- c()
+  p.value <- c()
+  
+  for(elem in 1:ncol(co)){
+    if(inherits(x, 'dist')){
+      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
+                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
+    }
+    
+    else  (
+      if (sim.function == 'daisy'){
+        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
+      } 
+      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
+    )
+    
+    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
+                 permutations = perm);
+    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    Df <- c(Df,ad[1,1])
+    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
+    F.Model <- c(F.Model,ad[1,4]);
+    R2 <- c(R2,ad[1,3]);
+    p.value <- c(p.value,ad[1,5])
+  }
+  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
+  
+  sig = c(rep('',length(p.adjusted)))
+  sig[p.adjusted <= 0.05] <-'.'
+  sig[p.adjusted <= 0.01] <-'*'
+  sig[p.adjusted <= 0.001] <-'**'
+  sig[p.adjusted <= 0.0001] <-'***'
+  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
+  
+  if(!is.null(reduce)){
+    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
+    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
+    
+    sig = c(rep('',length(pairw.res$p.adjusted)))
+    sig[pairw.res$p.adjusted <= 0.1] <-'.'
+    sig[pairw.res$p.adjusted <= 0.05] <-'*'
+    sig[pairw.res$p.adjusted <= 0.01] <-'**'
+    sig[pairw.res$p.adjusted <= 0.001] <-'***'
+    pairw.res <- data.frame(pairw.res[,1:7],sig)
+  }
+  class(pairw.res) <- c("pwadonis", "data.frame")
+  return(pairw.res)
+} 
+
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$sample.type) #Endo vs Manure, P = 0.0015, R2 = 0.23712525
+											#Endo vs Ecto, P = 0.2450, R2 = 0.06741974
+											#Manure vs Ecto, P = 0.0015, R2 = 0.16003274
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p < 0.0001
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #Endo-Ecto, p = 0.0829371
+		#Manure-Ecto, p = 0.0596323
+		#Manure-Endo, p = 0.0000000
+
+## PERMANOVA on BC-Dissimilaity (PCoA)
+# We want to know whether the distances between samples correspond to their sampling date
+# Arlington samples first
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.arlington <- subset_samples(ps, location=="Arlington")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.07157
+
+# Create a function for pairwise comparisons, to test significant effects between each treatment
+pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
+{
+  co <- combn(unique(as.character(factors)),2)
+  pairs <- c()
+  Df <- c()
+  SumsOfSqs <- c()
+  F.Model <- c()
+  R2 <- c()
+  p.value <- c()
+  
+  for(elem in 1:ncol(co)){
+    if(inherits(x, 'dist')){
+      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
+                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
+    }
+    
+    else  (
+      if (sim.function == 'daisy'){
+        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
+      } 
+      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
+    )
+    
+    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
+                 permutations = perm);
+    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    Df <- c(Df,ad[1,1])
+    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
+    F.Model <- c(F.Model,ad[1,4]);
+    R2 <- c(R2,ad[1,3]);
+    p.value <- c(p.value,ad[1,5])
+  }
+  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
+  
+  sig = c(rep('',length(p.adjusted)))
+  sig[p.adjusted <= 0.05] <-'.'
+  sig[p.adjusted <= 0.01] <-'*'
+  sig[p.adjusted <= 0.001] <-'**'
+  sig[p.adjusted <= 0.0001] <-'***'
+  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
+  
+  if(!is.null(reduce)){
+    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
+    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
+    
+    sig = c(rep('',length(pairw.res$p.adjusted)))
+    sig[pairw.res$p.adjusted <= 0.1] <-'.'
+    sig[pairw.res$p.adjusted <= 0.05] <-'*'
+    sig[pairw.res$p.adjusted <= 0.01] <-'**'
+    sig[pairw.res$p.adjusted <= 0.001] <-'***'
+    pairw.res <- data.frame(pairw.res[,1:7],sig)
+  }
+  class(pairw.res) <- c("pwadonis", "data.frame")
+  return(pairw.res)
+} 
+
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$sampling.date) #All NS
+
+# Statistical comparison of disperson within each sample type
+# using betadisper, which is more robust than ANOVA of BC-Dis values
+# See Anderson (2006) for a discussion on tests of multivariate dispersion.
+# Run this separately for each treatment
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #p = 0.1603
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.158
+
+## Now DCC
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.dcc <- subset_samples(ps, location=="DCC")
+DistVar = phyloseq::distance(ps.dcc, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.dcc))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.01, R2 = 0.18474
+
+# Create a function for pairwise comparisons, to test significant effects between each treatment
+pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
+{
+  co <- combn(unique(as.character(factors)),2)
+  pairs <- c()
+  Df <- c()
+  SumsOfSqs <- c()
+  F.Model <- c()
+  R2 <- c()
+  p.value <- c()
+  
+  for(elem in 1:ncol(co)){
+    if(inherits(x, 'dist')){
+      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
+                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
+    }
+    
+    else  (
+      if (sim.function == 'daisy'){
+        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
+      } 
+      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
+    )
+    
+    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
+                 permutations = perm);
+    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    Df <- c(Df,ad[1,1])
+    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
+    F.Model <- c(F.Model,ad[1,4]);
+    R2 <- c(R2,ad[1,3]);
+    p.value <- c(p.value,ad[1,5])
+  }
+  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
+  
+  sig = c(rep('',length(p.adjusted)))
+  sig[p.adjusted <= 0.05] <-'.'
+  sig[p.adjusted <= 0.01] <-'*'
+  sig[p.adjusted <= 0.001] <-'**'
+  sig[p.adjusted <= 0.0001] <-'***'
+  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
+  
+  if(!is.null(reduce)){
+    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
+    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
+    
+    sig = c(rep('',length(pairw.res$p.adjusted)))
+    sig[pairw.res$p.adjusted <= 0.1] <-'.'
+    sig[pairw.res$p.adjusted <= 0.05] <-'*'
+    sig[pairw.res$p.adjusted <= 0.01] <-'**'
+    sig[pairw.res$p.adjusted <= 0.001] <-'***'
+    pairw.res <- data.frame(pairw.res[,1:7],sig)
+  }
+  class(pairw.res) <- c("pwadonis", "data.frame")
+  return(pairw.res)
+} 
+
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$sampling.date) #All NS
+
+# Statistical comparison of disperson within each sample type
+# using betadisper, which is more robust than ANOVA of BC-Dis values
+# See Anderson (2006) for a discussion on tests of multivariate dispersion.
+# Run this separately for each treatment
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #p = 0.007631
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.011
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #All NS
+
+## PERMANOVA on BC-Dissimilaity (PCoA)
+# We want to know whether the distances between samples correspond to their sampling location within a given facility
+# Arlington manure samples first
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type=="Manure")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.001, R2 = 0.20767
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.007, R2 = 0.21004
+
+# Create a function for pairwise comparisons, to test significant effects between each treatment
+pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
+{
+  co <- combn(unique(as.character(factors)),2)
+  pairs <- c()
+  Df <- c()
+  SumsOfSqs <- c()
+  F.Model <- c()
+  R2 <- c()
+  p.value <- c()
+  
+  for(elem in 1:ncol(co)){
+    if(inherits(x, 'dist')){
+      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
+                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
+    }
+    
+    else  (
+      if (sim.function == 'daisy'){
+        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
+      } 
+      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
+    )
+    
+    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
+                 permutations = perm);
+    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    Df <- c(Df,ad[1,1])
+    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
+    F.Model <- c(F.Model,ad[1,4]);
+    R2 <- c(R2,ad[1,3]);
+    p.value <- c(p.value,ad[1,5])
+  }
+  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
+  
+  sig = c(rep('',length(p.adjusted)))
+  sig[p.adjusted <= 0.05] <-'.'
+  sig[p.adjusted <= 0.01] <-'*'
+  sig[p.adjusted <= 0.001] <-'**'
+  sig[p.adjusted <= 0.0001] <-'***'
+  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
+  
+  if(!is.null(reduce)){
+    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
+    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
+    
+    sig = c(rep('',length(pairw.res$p.adjusted)))
+    sig[pairw.res$p.adjusted <= 0.1] <-'.'
+    sig[pairw.res$p.adjusted <= 0.05] <-'*'
+    sig[pairw.res$p.adjusted <= 0.01] <-'**'
+    sig[pairw.res$p.adjusted <= 0.001] <-'***'
+    pairw.res <- data.frame(pairw.res[,1:7],sig)
+  }
+  class(pairw.res) <- c("pwadonis", "data.frame")
+  return(pairw.res)
+} 
+
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$trap) # Arl-M1 vs Arl-sickpen, p = 0.01000000
+									 # Arl-M5 vs Arl-sickpen, p = 0.00750000
+									 # Arl-M4 vs Arl-sickpen, p = 0.00750000
+
+pairwise.adonis(DistVar,psData$sampling.date) # All NS
+
+# Statistical comparison of disperson within each sample type
+# using betadisper, which is more robust than ANOVA of BC-Dis values
+# See Anderson (2006) for a discussion on tests of multivariate dispersion.
+# Run this separately for each treatment
+beta = betadisper(DistVar, psData$trap)
+anova(beta) #p = 0.1947
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.183
+
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #NS
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #NS
+
+# Now Arlington flies
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type!="Manure")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.003, R2 = 0.03326
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.12424
+
+# Create a function for pairwise comparisons, to test significant effects between each treatment
+pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
+{
+  co <- combn(unique(as.character(factors)),2)
+  pairs <- c()
+  Df <- c()
+  SumsOfSqs <- c()
+  F.Model <- c()
+  R2 <- c()
+  p.value <- c()
+  
+  for(elem in 1:ncol(co)){
+    if(inherits(x, 'dist')){
+      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
+                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
+    }
+    
+    else  (
+      if (sim.function == 'daisy'){
+        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
+      } 
+      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
+    )
+    
+    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
+                 permutations = perm);
+    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    Df <- c(Df,ad[1,1])
+    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
+    F.Model <- c(F.Model,ad[1,4]);
+    R2 <- c(R2,ad[1,3]);
+    p.value <- c(p.value,ad[1,5])
+  }
+  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
+  
+  sig = c(rep('',length(p.adjusted)))
+  sig[p.adjusted <= 0.05] <-'.'
+  sig[p.adjusted <= 0.01] <-'*'
+  sig[p.adjusted <= 0.001] <-'**'
+  sig[p.adjusted <= 0.0001] <-'***'
+  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
+  
+  if(!is.null(reduce)){
+    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
+    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
+    
+    sig = c(rep('',length(pairw.res$p.adjusted)))
+    sig[pairw.res$p.adjusted <= 0.1] <-'.'
+    sig[pairw.res$p.adjusted <= 0.05] <-'*'
+    sig[pairw.res$p.adjusted <= 0.01] <-'**'
+    sig[pairw.res$p.adjusted <= 0.001] <-'***'
+    pairw.res <- data.frame(pairw.res[,1:7],sig)
+  }
+  class(pairw.res) <- c("pwadonis", "data.frame")
+  return(pairw.res)
+} 
+
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$trap) # All NS
+pairwise.adonis(DistVar,psData$sampling.date) # 7.16.2021 vs 7.30.2021, P = 0.047520000 later
+											  # 7.16.2021 vs 8.6.2021, P = 0.003600000 later
+											  # 7.16.2021 vs 8.13.2021, P = 0.009473684 later
+											  # 7.16.2021 vs 9.10.2021, P = 0.046500000 later
+											  # 7.23.2021 vs 8.13.2021, P = 0.003600000 later
+											  # 7.23.2021 vs 7.9.2021, P = 0.009473684 earliest
+											  # 7.23.2021 vs 8.27.2021, P = 0.003600000 later
+											  # 7.23.2021 vs 9.10.2021, P = 0.009473684 later
+											  # 7.30.2021 vs 8.6.2021, P = 0.044181818 later
+											  # 7.30.2021 vs 8.13.2021, P = 0.003600000 later
+											  # 7.30.2021 vs 7.9.2021, P = 0.009473684 earliest
+											  # 7.30.2021 vs 8.27.2021, P = 0.005538462 later
+											  # 7.30.2021 vs 9.10.2021, P = 0.007714286 later
+											  # 8.6.2021 vs 8.13.2021, P = 0.003600000 later
+											  # 8.6.2021 vs 7.9.2021, P = 0.005538462 earliest
+											  # 8.6.2021 vs 8.27.2021, P = 0.003600000 later
+											  # 8.6.2021 vs 9.10.2021, P = 0.003600000 later
+											  # 8.13.2021 vs 7.9.2021, P = 0.003600000 earliest
+											  # 8.13.2021 vs 8.20.2021, P = 0.005538462 later
+											  # 8.13.2021 vs 8.27.2021, P = 0.003600000 later
+											  # 7.9.2021 vs 8.20.2021, P = 0.046500000 later
+											  # 7.9.2021 vs 8.27.2021, P = 0.029142857 later
+											  # 7.9.2021 vs 9.10.2021, P = 0.003600000 later
+											  # 8.20.2021 vs 8.27.2021, P = 0.012600000 later
+											  # 8.27.2021 vs 9.10.2021, P = 0.009473684 later
+
+# Statistical comparison of disperson within each sample type
+# using betadisper, which is more robust than ANOVA of BC-Dis values
+# See Anderson (2006) for a discussion on tests of multivariate dispersion.
+# Run this separately for each treatment
+beta = betadisper(DistVar, psData$trap)
+anova(beta) #p = 0.8433
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.86
+
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #p = 0.005938
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.007	
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   # 8.13.2021-7.23.2021, P = 0.0304901
+		# 8.27.2021-7.23.2021, P = 0.0036722
+
+# Now DCC manure
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.dcc <- subset_samples(ps, location=="DCC"&sample.type=="Manure")
+DistVar = phyloseq::distance(ps.dcc, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.dcc))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.006, R2 = 0.107
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.27937
+
+# Create a function for pairwise comparisons, to test significant effects between each treatment
+pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
+{
+  co <- combn(unique(as.character(factors)),2)
+  pairs <- c()
+  Df <- c()
+  SumsOfSqs <- c()
+  F.Model <- c()
+  R2 <- c()
+  p.value <- c()
+  
+  for(elem in 1:ncol(co)){
+    if(inherits(x, 'dist')){
+      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
+                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
+    }
+    
+    else  (
+      if (sim.function == 'daisy'){
+        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
+      } 
+      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
+    )
+    
+    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
+                 permutations = perm);
+    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    Df <- c(Df,ad[1,1])
+    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
+    F.Model <- c(F.Model,ad[1,4]);
+    R2 <- c(R2,ad[1,3]);
+    p.value <- c(p.value,ad[1,5])
+  }
+  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
+  
+  sig = c(rep('',length(p.adjusted)))
+  sig[p.adjusted <= 0.05] <-'.'
+  sig[p.adjusted <= 0.01] <-'*'
+  sig[p.adjusted <= 0.001] <-'**'
+  sig[p.adjusted <= 0.0001] <-'***'
+  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
+  
+  if(!is.null(reduce)){
+    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
+    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
+    
+    sig = c(rep('',length(pairw.res$p.adjusted)))
+    sig[pairw.res$p.adjusted <= 0.1] <-'.'
+    sig[pairw.res$p.adjusted <= 0.05] <-'*'
+    sig[pairw.res$p.adjusted <= 0.01] <-'**'
+    sig[pairw.res$p.adjusted <= 0.001] <-'***'
+    pairw.res <- data.frame(pairw.res[,1:7],sig)
+  }
+  class(pairw.res) <- c("pwadonis", "data.frame")
+  return(pairw.res)
+} 
+
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$trap) #DCC-Q4 vs DCC-Q2, P = 0.01333333, R2 = 0.09505496
+									 #DCC-Outdoor vs DCC-Q2, P = 0.01333333, R2 = 0.08699574
+									 #DCC-Q2 vs DCC-Q3, P = 0.01333333, R2 = 0.09749623
+
+pairwise.adonis(DistVar,psData$sampling.date) #All NS
+
+beta = betadisper(DistVar, psData$trap)
+anova(beta) #p = 0.301
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.301
+
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #p = 0.0325
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.033
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   # All NS
+
+# DCC flies
+
+# Create a variable that is your distance matrix; You'll need this later.
+ps.dcc <- subset_samples(ps, location=="DCC"&sample.type!="Manure")
+DistVar = phyloseq::distance(ps.dcc, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.dcc))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.053, R2 = 0.40492
+
+#### PCoA to compare communities in different sample types across sampling dates within each facility ####
+#### Arlington samples first
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.9.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.29026
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p = 0.008171
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.008
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.16.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.24944
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.003, R2 = 0.24709391
+									 		 #Endo-Ecto, NS
+									 		 #Manure-Ecto, P = 0.036, R2 = 0.41520763
+  
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p = 0.0002489
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.001
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #Endo-Ecto, NS
+		#Manure-Ecto, P = 0.0187522
+		#Manure-Endo, P = 0.0001664
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.23.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.23464
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.002, R2 = 0.2196934
+									 		 #Endo-Ecto, NS
+									 		 #Manure-Ecto, P = 0.020, R2 = 0.4441589
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p < 0.0001
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.001
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #Endo-Ecto, NS
+		#Manure-Ecto, P = 0.0000165
+		#Manure-Endo, P = 0.0000000
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.30.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.31196
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.003, R2 = 0.30843045
+									 		 #Endo-Ecto, NS
+									 		 #Manure-Ecto, P = 0.009, R2 = 0.36477924
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p = 0.009731
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.001
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #Endo-Ecto, NS
+		#Manure-Ecto, NS
+		#Manure-Endo, P = 0.0082236
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.6.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.27685
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.003, R2 = 0.24244774
+									 		 #Endo-Ecto, P = 0.006, R2 = 0.09966574
+									 		 #Manure-Ecto, P = 0.006, R2 = 0.43792647
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p = 0.001812
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.002
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #Endo-Ecto, NS
+		#Manure-Ecto, NS
+		#Manure-Endo, P = 0.0022046
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.13.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.30888
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.0030, R2 = 0.29678640
+									 		 #Endo-Ecto, NS
+									 		 #Manure-Ecto, P = 0.0105, R2 = 0.44056164
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #NS
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #NS
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.20.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.33131
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.003, R2 = 0.3163714
+									 		 #Endo-Ecto, NS
+									 		 #Manure-Ecto, P = 0.012, R2 = 0.3637700
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p = 0.001683
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.001
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   #Endo-Ecto, NS
+		#Manure-Ecto, NS
+		#Manure-Endo, P = 0.0012203
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.27.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.38051
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.003, R2 = 0.3456372
+									 		 #Endo-Ecto, NS
+									 		 #Manure-Ecto, P = 0.0105, R2 = 0.5570000
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #NS
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #NS
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="9.10.2021")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.arlington))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.33398
+
+co <- combn(unique(as.character(psData$sample.type)),2)  
+x1=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1])),
+	psData$sample.type %in% c(as.character(co[1,1]),as.character(co[2,1]))]    
+x2=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2])),
+	psData$sample.type %in% c(as.character(co[1,2]),as.character(co[2,2]))]    
+x3=as.matrix(DistVar)[psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3])),
+	psData$sample.type %in% c(as.character(co[1,3]),as.character(co[2,3]))]    
+
+ad1 <- adonis2(x1 ~ psData$sample.type[psData$sample.type %in% c(co[1,1],co[2,1])], permutations = 999)
+ad2 <- adonis2(x2 ~ psData$sample.type[psData$sample.type %in% c(co[1,2],co[2,2])], permutations = 999)
+ad3 <- adonis2(x3 ~ psData$sample.type[psData$sample.type %in% c(co[1,3],co[2,3])], permutations = 999)
+
+R2 <- c(ad1[1,3],ad2[1,3],ad3[1,3])
+p.values <- c(ad1[1,5],ad2[1,5],ad3[1,5])
+p.adjusted <- p.adjust(p.values,method='BH') #Endo-Manure, P = 0.006, R2 = 0.3110369
+									 		 #Endo-Ecto, NS
+									 		 #Manure-Ecto, P = 0.042, R2 = 0.3693789
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #NS
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #NS
+
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.15.2021")
+DistVar = phyloseq::distance(ps.dcc, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.dcc))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.008, R2 = 0.4281
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p = 0.0009117
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.001
+
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.22.2021")
+DistVar = phyloseq::distance(ps.dcc, method = "bray")
+
+# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
+psData = data.frame(sample_data(ps.dcc))
+
+# Run PERMANOVA by sample type
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.007, R2 = 0.40679
+
+beta = betadisper(DistVar, psData$sample.type)
+anova(beta) #p = 0.0002131
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.001
+
+# Community Composition Plots
+
+setwd("/Users/kerricoon/Library/CloudStorage/Box-Box/Manuscripts/Field-16S-Sommer")
+
+source("./Helper_Functions.R")
+source("./TwinMom16S_Shared_Functions.R")
+
+ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
+sample_data(ps)$SampleID <- row.names(sample_data(ps))
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.9.21"] <- "7.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.16.21"] <- "7.16.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.23.21"] <- "7.23.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.30.21"] <- "7.30.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.6.21"] <- "8.6.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.13.21"] <- "8.13.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.20.21"] <- "8.20.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.27.21"] <- "8.27.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.10.21"] <- "9.10.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.8.21"] <- "7.8.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.15.21"] <- "7.15.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.22.21"] <- "7.22.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.29.21"] <- "7.29.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.5.21"] <- "8.5.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.12.21"] <- "8.12.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.19.21"] <- "8.19.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.26.21"] <- "8.26.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.2.21"] <- "9.2.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.9.21"] <- "9.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.15.21"] <- "9.15.2021"
+ps
+ps <- subset_samples(ps, sample_sums(ps)>100) 
+ps <- subset_taxa(ps,taxa_sums(ps)>0)
+variable1 = as.character(get_variable(ps, "sample.type"))
+variable2 = as.character(get_variable(ps, "location"))
+variable3 = as.character(get_variable(ps, "sampling.date"))
+sample_data(ps)$NewPastedVar <- mapply(paste0, variable1, variable2, variable3, 
+    collapse = "_")
+ps.Merged <- merge_samples(ps, "NewPastedVar")
+metadata <- data.frame(sample_data(ps.Merged))
+orderAbdDF <- MakeAbundanceDF(physeq = ps.Merged,
+                               taxRank = "Order",
+                               abundanceFilter = 0.02)
+        
+#write.csv(orderAbdDF, "orderAbdDF.csv", row.names=FALSE)
+        
+orderAbdDF_formatted <- read.csv('orderAbdDF_formatted.csv',header=TRUE)
+
+# Order the samples in familyAbdDF by the sampleLevels
+
+metadata <- metadata %>%
+  rownames_to_column(var = "Sample")
+sampleLevels <- as.character(metadata$Sample)
+sampleLabels <- metadata %>%
+  dplyr::select(Sample)
+sampleLabelsVec <- sampleLabels$Sample
+names(sampleLabelsVec) <- sampleLabels$Sample
+
+orderAbdDF_formatted$Sample <- factor(orderAbdDF_formatted$Sample, levels = sampleLevels)
+orderAbdDF_formatted$Order <- factor(orderAbdDF_formatted$Order, levels=c("Acetobacterales","Caulobacterales","Rhizobiales","Rhodobacterales","Sphingomonadales",
+																			"Aeromonadales","Burkholderiales","Cardiobacteriales","Chromatiales","Enterobacterales",
+																			"Pseudomonadales","Xanthomonadales","Bacillales","Exiguobacterales","Lactobacillales",
+																			"Staphylococcales","Christensenellales","Clostridia","Clostridiales","Eubacteriales",
+																			"Lachnospirales","Monoglobales","Oscillospirales","Peptostreptococcales-Tissierellales","Acholeplasmatales",
+																			"Erysipelotrichales","Flavobacteriales","Bacteroidales","Bifidobacteriales","Corynebacteriales",
+																			"Micrococcales","Propionibacteriales","Coriobacteriales","Campylobacterales","Spirochaetales"))
+cbPalette <- unique(orderAbdDF_formatted$Color)
+orderCompPlot <- ggplot(orderAbdDF_formatted,
+                         aes_string(x = "Sample", y = "Abundance",
+                                    fill = "Order")) +
+  geom_bar(stat = "identity", width = 1) +
+  theme_bw() +
+  scale_x_discrete(labels = sampleLabelsVec) +
+  scale_fill_manual(values=cbPalette)
+orderCompPlot
+             
+               
+               
+               
+               
+                   
+                    
+                            
+# Order infant and mother samples by Tarr ID
+metadata <- metadata %>%
+  rownames_to_column(var = "Sample")
+sampleLevels <- as.character(metadata$Sample)
+sampleLabels <- metadata %>%
+  dplyr::select(Sample)
+sampleLabelsVec <- sampleLabels$Sample
+names(sampleLabelsVec) <- sampleLabels$Sample
+
+# Order the samples in familyAbdDF by the sampleLevels
+orderAbdDF$Sample <- factor(orderAbdDF$Sample, levels = sampleLevels)
+orderCompPlot <- ggplot(orderAbdDF,
+                         aes_string(x = "Sample", y = "Abundance",
+                                    fill = "Order")) +
+  geom_bar(stat = "identity", width = 1) +
+  theme_bw() +
+  scale_x_discrete(labels = sampleLabelsVec)
+orderCompPlot
+
+
+
+
+
+
+
+
+ps.Manure <- subset_samples(ps, sample.type=="Manure")
+ps.ManureMerged <- merge_samples(ps.Manure,"trap")
+metadata <- data.frame(sample_data(ps.ManureMerged))
+
+# Calculate abundance data frame at Order rank
+orderAbdDF <- MakeAbundanceDF(physeq = ps.ManureMerged,
+                               taxRank = "Order",
+                               abundanceFilter = 0.01)
+                                               
+# Order infant and mother samples by Tarr ID
+metadata <- metadata %>%
+  rownames_to_column(var = "Sample")
+sampleLevels <- as.character(metadata$Sample)
+sampleLabels <- metadata %>%
+  dplyr::select(Sample)
+sampleLabelsVec <- sampleLabels$Sample
+names(sampleLabelsVec) <- sampleLabels$Sample
+
+# Order the samples in familyAbdDF by the sampleLevels
+orderAbdDF$Sample <- factor(orderAbdDF$Sample, levels = sampleLevels)
+orderCompPlot <- ggplot(orderAbdDF,
+                         aes_string(x = "Sample", y = "Abundance",
+                                    fill = "Order")) +
+  geom_bar(stat = "identity", width = 1) +
+  theme_bw() +
+  scale_x_discrete(labels = sampleLabelsVec)
+orderCompPlot
+
+# Calculate abundance data frame at Family rank
+familyAbdDF <- MakeAbundanceDF(physeq = ps.ManureMerged,
+                               taxRank = "Family",
+                               abundanceFilter = 0.01)
+
+#write.csv(familyAbdDF, "familyAbdDF.csv", row.names=FALSE)
+
+#familyAbdDF$Family[familyAbdDF$Family == "[Eubacterium]_coprostanoligenes_group"] <- "Eubacteriaceae"
+#familyAbdDF$Family[familyAbdDF$Family == "Bacteroidales_RF16_group"] <- "uncl_Bacteroidales"
+#familyAbdDF$Family[familyAbdDF$Family == "Butyricicoccaceae"] <- "Oscillospiraceae"
+#familyAbdDF$Family[familyAbdDF$Family == "Clostridia_UCG-014"] <- "uncl_Clostridia"
+#familyAbdDF$Family[familyAbdDF$Family == "Clostridia_vadinBB60_group"] <- "uncl_Clostridia"
+#familyAbdDF$Family[familyAbdDF$Family == "Hungateiclostridiaceae"] <- "Oscillospiraceae"
+#familyAbdDF$Family[familyAbdDF$Family == "Monoglobaceae"] <- "Oscillospiraceae"
+#familyAbdDF$Family[familyAbdDF$Family == "Peptostreptococcales-Tissierellales"] <- "uncl_Eubacteriales"
+#familyAbdDF$Family[familyAbdDF$Family == "Planococcaceae"] <- "Caryophanaceae"
+#familyAbdDF$Family[familyAbdDF$Family == "Ruminococcaceae"] <- "Oscillospiraceae"
+#familyAbdDF$Family[familyAbdDF$Family == "UCG-010"] <- "Oscillospiraceae"
+#familyAbdDF$Family[familyAbdDF$Family == "uncultured"] <- "Other"
+
+familyAbdDF_renamed <- read.csv('familyAbdDF_renamed.csv',header=TRUE)
+
+# Order the samples in familyAbdDF by the sampleLevels
+familyAbdDF_renamed$Sample <- factor(familyAbdDF_renamed$Sample, levels = sampleLevels)
+familyAbdDF_renamed$Family <- factor(familyAbdDF_renamed$Family, levels=c("Actinomycetaceae","Bifidobacteriaceae","Corynebacteriaceae","Acidaminococcaceae","Aerococcaceae",
+			"Anaerovoracaceae","Carnobacteriaceae","Caryophanaceae","Christensenellaceae","Erysipelotrichaceae",
+			"Eubacteriaceae","Lachnospiraceae","Oscillospiraceae","Staphylococcaceae","uncl_Clostridia",
+			"uncl_Eubacteriales","Bacteroidaceae","Dysgonomonadaceae","Flavobacteriaceae","Muribaculaceae",
+			"Prevotellaceae","Rikenellaceae","uncl_Bacteroidales","Methanobacteriaceae","Acholeplasmataceae",
+			"Alcaligenaceae","Moraxellaceae","Pseudomonadaceae","Spirochaetaceae","Akkermansiaceae",
+			"Other"))
+cbPalette <- unique(familyAbdDF_renamed$Color)
+familyCompPlot <- ggplot(familyAbdDF_renamed,
+                         aes_string(x = "Sample", y = "Abundance",
+                                    fill = "Family")) +
+  geom_bar(stat = "identity", width = 1) +
+  theme_bw() +
+  scale_x_discrete(labels = sampleLabelsVec) +
+  scale_fill_manual(values=cbPalette)
+familyCompPlot
+
+familyAbdDF_renamed <- read.csv('familyAbdDF_renamed2.csv',header=TRUE)
+
+# Order the samples in familyAbdDF by the sampleLevels
+familyAbdDF_renamed$Sample <- factor(familyAbdDF_renamed$Sample, levels = sampleLevels)
+familyAbdDF_renamed$Family <- factor(familyAbdDF_renamed$Family, levels=c("Acidaminococcaceae","Aerococcaceae",
+			"Anaerovoracaceae","Carnobacteriaceae","Caryophanaceae","Christensenellaceae","Erysipelotrichaceae",
+			"Eubacteriaceae","Lachnospiraceae","Oscillospiraceae","Staphylococcaceae","uncl_Clostridia",
+			"uncl_Eubacteriales","Actinomycetaceae","Bifidobacteriaceae","Corynebacteriaceae","Bacteroidaceae","Dysgonomonadaceae","Flavobacteriaceae","Muribaculaceae",
+			"Prevotellaceae","Rikenellaceae","uncl_Bacteroidales","Alcaligenaceae","Moraxellaceae","Pseudomonadaceae","Methanobacteriaceae","Acholeplasmataceae",
+			"Spirochaetaceae","Akkermansiaceae",
+			"Other"))
+cbPalette <- unique(familyAbdDF_renamed$Color)
+familyCompPlot <- ggplot(familyAbdDF_renamed,
+                         aes_string(x = "Sample", y = "Abundance",
+                                    fill = "Family")) +
+  geom_bar(stat = "identity", width = 1) +
+  theme_bw() +
+  scale_x_discrete(labels = sampleLabelsVec) +
+  scale_fill_manual(values=cbPalette)
+familyCompPlot
+
+
+#### Get set up ####
+library(corncob)
+library(phyloseq)
+library(dplyr)
+library(ggplot2)
+
+# Import phyloseq object
+ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
+sample_data(ps)$SampleID <- row.names(sample_data(ps))
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.9.21"] <- "7.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.16.21"] <- "7.16.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.23.21"] <- "7.23.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.30.21"] <- "7.30.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.6.21"] <- "8.6.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.13.21"] <- "8.13.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.20.21"] <- "8.20.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.27.21"] <- "8.27.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.10.21"] <- "9.10.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.8.21"] <- "7.8.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.15.21"] <- "7.15.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.22.21"] <- "7.22.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.29.21"] <- "7.29.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.5.21"] <- "8.5.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.12.21"] <- "8.12.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.19.21"] <- "8.19.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.26.21"] <- "8.26.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.2.21"] <- "9.2.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.9.21"] <- "9.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.15.21"] <- "9.15.2021"
+ps <- subset_samples(ps, sample_sums(ps)>100) 
+ps <- subset_taxa(ps,taxa_sums(ps)>0)
+ps <- tax_glom(ps, taxrank="Order")
+sample_data(ps)$newtrap = c("B2-West","B2-West","B2-West","DCC","DCC","DCC","DCC","B1-East","B1-East","B1-East",
+"B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West",
+"B2-West","B2-West","DCC","B1-East","B1-West","B1-West","B2-East","B2-East","DCC","DCC","B2-West",
+"B2-West","DCC","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West",
+"B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West",
+"B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B1-East","B1-East",
+"B2-West","B2-West","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East",
+"B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East",
+"B1-West","B1-West","B1-West","B1-West","B2-West","B2-West","B2-West","DCC","B1-East","B1-East","B1-East",
+"B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East","DCC","B2-East","B2-East","B2-East",
+"B2-East","B2-West","B2-West","DCC","DCC","DCC","DCC","B1-East","B1-East","B1-East","B1-East",
+"B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","notsick","notsick","notsick","notsick",
+"notsick","notsick","notsick","notsick","notsick","notsick","notsick","notsick","notsick","Arl-sickpen","notsick",
+"notsick","notsick","notsick","notsick","Arl-sickpen","notsick","notsick","notsick","notsick","notsick","notsick",
+"Arl-sickpen","notsick","notsick","notsick","notsick","notsick","Arl-sickpen","notsick","notsick","notsick","notsick",
+"notsick","notsick","Arl-sickpen","notsick","notsick","notsick","notsick","notsick","notsick","Arl-sickpen","notsick",
+"notsick","notsick","notsick","notQ2","notQ2","notQ2","DCC-Q2","notQ2","notQ2","notQ2","notQ2",
+"DCC-Q2","notQ2","notQ2","notQ2","notQ2","DCC-Q2","notQ2","notQ2","notQ2","notQ2","DCC-Q2",
+"notQ2","notQ2","notQ2","notQ2","DCC-Q2","notQ2","notQ2","notQ2","notQ2","DCC-Q2","notQ2",
+"notQ2","notQ2","notQ2","DCC-Q2","notQ2","notQ2","notQ2","notQ2","DCC-Q2","notQ2","notQ2",
+"notQ2","notQ2","DCC-Q2","notQ2","notQ2","notQ2","notQ2","DCC-Q2","notQ2","notQ2","notQ2",
+"notQ2","DCC-Q2","notQ2","B2-East","B2-West","DCC","B1-East","B1-West","B2-East","DCC","B1-East",
+"B1-West","B2-East","B2-West","DCC","B1-East","B1-West","B2-West","B1-East","B1-West","B2-East","B2-West",
+"B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","DCC","B1-East","B2-East",
+"B1-East","B2-East")
+ps
+
+#### Differential abundance, manure sampling locations ####
+## Arlington first
+
+# Create empty data frame to hold all results
+df.mixed = data.frame()
+
+# Subset for one comparison: a treatment group compared to baseline (1X)
+# Loop to run through each times mixed
+for (i in c("notsick","Arl-sickpen")){
+  # subset ps object to include 1x samples, plus all treatment samples
+  ps.subset = prune_samples(sample_data(ps)$location == "Arlington"&sample_data(ps)$sample.type=="Manure", ps)
+  # Cut out any global zeros within this set
+  ps.subset = prune_taxa(taxa_sums(ps.subset)>0,ps.subset)
+
+  ## Drop taxa with super low abundance.
+  # make a list of taxa that are relatively low abundance, then keep only the abundant taxa
+  ps.subset.relabund = transform_sample_counts(ps.subset, function(x) x / sum(x))
+  AbundTaxa = taxa_names(filter_taxa(ps.subset.relabund, function(x) mean(x) > 0.00001, TRUE))
+  ps.subset = prune_taxa(AbundTaxa,ps.subset)
+  
+  # Create post-hoc filters from the relative abundance data
+  # We ultimately won't be interested in enriched taxa that are rare even after enrichment
+  ps.sub = prune_samples(sample_data(ps.subset.relabund)$newtrap==i,ps.subset.relabund)
+  RareTrtTaxa = taxa_names(filter_taxa(ps.sub, function(x) mean(x) < 0.01, TRUE))
+  
+  # We give all parameters of interest (control and variable) to formula and phi.formula,
+  # And then drop the parameter we want to test from the _null versions
+  # (leaving 1 if there are no control variables, 
+  # and the same parameters if we don't want to test for anything (as in phi.formula_null))
+  # formula is the differential abundance
+  # phi.formula is the differential variance
+  # We may just need a very simple model for this dataset, testing for TimesMixed
+  dT.ps.subset = differentialTest(formula = ~ newtrap, 
+                               phi.formula = ~ newtrap,
+                               formula_null = ~ 1,
+                               phi.formula_null = ~ newtrap,
+                               test = "Wald", boot = FALSE,
+                               data = ps.subset,
+                               fdr_cutoff = 0.05)
+  
+  # Making an empty dataframe to hold the full results
+  df.ps.mixed  = data.frame()
+  
+  # Loop to pull out coefficients for each taxon
+  for (j in 1:length(dT.ps.subset$significant_taxa)){
+    # Get the significant model for that taxon
+    sig_models = dT.ps.subset$significant_models[[j]]
+    # Pull out the coefficients as above
+    mu = data.frame(t(as.matrix(sig_models$coefficients[2,])))
+    # Also grab the p_fdr estimate for that taxon's model
+    p_fdr = dT.ps.subset$p_fdr[dT.ps.subset$significant_taxa][j]
+    # Add that estimate onto our coefficient data frame
+    mu$p_fdr = p_fdr
+    # Create a column with the OTU ID
+    mu$OTU= paste(row.names(data.frame(p_fdr)))
+    # Add this row onto the df dataframe, which will collect the results
+    # for all taxa as it iterates through this loop.
+    df.ps.mixed = rbind(df.ps.mixed,mu)
+  }
+  
+  # Clean up column names
+  colnames(df.ps.mixed) = c("Estimate","SE","t","p","p_fdr","OTU")
+  
+  # Bring back in the taxonomy from the tax table
+  SigOTUs = levels(as.factor(df.ps.mixed$OTU))
+  pruned = prune_taxa(SigOTUs,ps.subset)
+  taxtab = data.frame(tax_table(pruned))
+  taxtab$OTU = c(taxa_names(pruned))
+  joined.ps.subset = merge(df.ps.mixed,taxtab,by=c("OTU"))
+  
+  # Make column to designate if OTU is rare, for filtering later
+  joined.ps.subset$RareTrtTaxa = ifelse(joined.ps.subset$OTU %in% RareTrtTaxa, "rare", "not rare")
+  
+  # Prep for merging with other times mixed
+  joined.ps.subset$newtrap = paste(i)
+  
+  # Make final dataframe by joining together each differential test set
+  df.mixed = rbind(df.mixed, joined.ps.subset)
+}
+
+dim(df.mixed)
+head(df.mixed)
+
+# Put treatments in order for graphing
+df.mixed$newtrap = ordered(df.mixed$newtrap,levels=c("notsick", "Arl-sickpen"))
+
+### Look at allll those OTUs
+# How many total enriched (>0) (or depleted, <0) OTUs, total OR by treatment?
+df.mixed$OTU = as.character(df.mixed$OTU)
+df.sickpen = df.mixed[df.mixed$newtrap=="Arl-sickpen",]
+df.sickpen = df.sickpen[df.sickpen$p_fdr<0.05,]
+df.sickpen = df.sickpen[df.sickpen$RareTrtTaxa=="not rare",]
+
+df.mixed = data.frame()
+
+# Subset for one comparison: a treatment group compared to baseline (1X)
+# Loop to run through each times mixed
+for (i in c("notQ2","DCC-Q2")){
+  # subset ps object to include 1x samples, plus all treatment samples
+  ps.subset = prune_samples(sample_data(ps)$location == "DCC"&sample_data(ps)$sample.type=="Manure", ps)
+  # Cut out any global zeros within this set
+  ps.subset = prune_taxa(taxa_sums(ps.subset)>0,ps.subset)
+
+  ## Drop taxa with super low abundance.
+  # make a list of taxa that are relatively low abundance, then keep only the abundant taxa
+  ps.subset.relabund = transform_sample_counts(ps.subset, function(x) x / sum(x))
+  AbundTaxa = taxa_names(filter_taxa(ps.subset.relabund, function(x) mean(x) > 0.00001, TRUE))
+  ps.subset = prune_taxa(AbundTaxa,ps.subset)
+  
+  # Create post-hoc filters from the relative abundance data
+  # We ultimately won't be interested in enriched taxa that are rare even after enrichment
+  ps.sub = prune_samples(sample_data(ps.subset.relabund)$newtrap==i,ps.subset.relabund)
+  RareTrtTaxa = taxa_names(filter_taxa(ps.sub, function(x) mean(x) < 0.01, TRUE))
+  
+  # We give all parameters of interest (control and variable) to formula and phi.formula,
+  # And then drop the parameter we want to test from the _null versions
+  # (leaving 1 if there are no control variables, 
+  # and the same parameters if we don't want to test for anything (as in phi.formula_null))
+  # formula is the differential abundance
+  # phi.formula is the differential variance
+  # We may just need a very simple model for this dataset, testing for TimesMixed
+  dT.ps.subset = differentialTest(formula = ~ newtrap, 
+                               phi.formula = ~ newtrap,
+                               formula_null = ~ 1,
+                               phi.formula_null = ~ newtrap,
+                               test = "Wald", boot = FALSE,
+                               data = ps.subset,
+                               fdr_cutoff = 0.05)
+  
+  # Making an empty dataframe to hold the full results
+  df.ps.mixed  = data.frame()
+  
+  # Loop to pull out coefficients for each taxon
+  for (j in 1:length(dT.ps.subset$significant_taxa)){
+    # Get the significant model for that taxon
+    sig_models = dT.ps.subset$significant_models[[j]]
+    # Pull out the coefficients as above
+    mu = data.frame(t(as.matrix(sig_models$coefficients[2,])))
+    # Also grab the p_fdr estimate for that taxon's model
+    p_fdr = dT.ps.subset$p_fdr[dT.ps.subset$significant_taxa][j]
+    # Add that estimate onto our coefficient data frame
+    mu$p_fdr = p_fdr
+    # Create a column with the OTU ID
+    mu$OTU= paste(row.names(data.frame(p_fdr)))
+    # Add this row onto the df dataframe, which will collect the results
+    # for all taxa as it iterates through this loop.
+    df.ps.mixed = rbind(df.ps.mixed,mu)
+  }
+  
+  # Clean up column names
+  colnames(df.ps.mixed) = c("Estimate","SE","t","p","p_fdr","OTU")
+  
+  # Bring back in the taxonomy from the tax table
+  SigOTUs = levels(as.factor(df.ps.mixed$OTU))
+  pruned = prune_taxa(SigOTUs,ps.subset)
+  taxtab = data.frame(tax_table(pruned))
+  taxtab$OTU = c(taxa_names(pruned))
+  joined.ps.subset = merge(df.ps.mixed,taxtab,by=c("OTU"))
+  
+  # Make column to designate if OTU is rare, for filtering later
+  joined.ps.subset$RareTrtTaxa = ifelse(joined.ps.subset$OTU %in% RareTrtTaxa, "rare", "not rare")
+  
+  # Prep for merging with other times mixed
+  joined.ps.subset$newtrap = paste(i)
+  
+  # Make final dataframe by joining together each differential test set
+  df.mixed = rbind(df.mixed, joined.ps.subset)
+}
+
+dim(df.mixed)
+head(df.mixed)
+
+# Put treatments in order for graphing
+df.mixed$newtrap = ordered(df.mixed$newtrap,levels=c("notQ2", "DCC-Q2"))
+
+### Look at allll those OTUs
+# How many total enriched (>0) (or depleted, <0) OTUs, total OR by treatment?
+df.mixed$OTU = as.character(df.mixed$OTU)
+df.sickpen = df.mixed[df.mixed$newtrap=="DCC-Q2",]
+df.sickpen = df.sickpen[df.sickpen$p_fdr<0.05,]
+df.sickpen = df.sickpen[df.sickpen$RareTrtTaxa=="not rare",]
+
+
+
+
+

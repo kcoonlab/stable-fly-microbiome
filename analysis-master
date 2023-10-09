@@ -200,6 +200,41 @@ ps_order_sub <- subset_taxa(ps_order, Order %in% c(" Acetobacterales"," Caulobac
 									" Lachnospirales"," Monoglobales"," Oscillospirales"," Peptostreptococcales-Tissierellales"," Acholeplasmatales",
 									" Erysipelotrichales"," Flavobacteriales"," Bacteroidales"," Bifidobacteriales"," Corynebacteriales",
 									" Micrococcales"," Propionibacteriales"," Coriobacteriales"," Campylobacterales"," Spirochaetales"))
+ps_order_sub2 = subset_samples(ps_order_sub, sample.type!="Ecto")
+ancombc2_out = ancombc(phyloseq = ps_order_sub2, formula = "pooltype", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out
+
+ps_order_sub_endo = subset_samples(ps_order_sub, summary=="Endo.Arlington" | summary=="Endo.DCC")
+ancombc2_out = ancombc(phyloseq = ps_order_sub_endo, formula = "summary", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out
+
+ps_order_sub3 = subset_samples(ps_order_sub, summary!="Ecto.DCC")
+ps_order_sub3 = subset_samples(ps_order_sub, sample.type!="Endo")
+ancombc2_out = ancombc(phyloseq = ps_order_sub3, formula = "pooltype", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out
+
+
 ps_order_sub_arlington = subset_samples(ps_order_sub, location=="Arlington")
 ps_order_sub_arlington2 = subset_samples(ps_order_sub_arlington, sample.type!="Ecto")
 ancombc2_out = ancombc(phyloseq = ps_order_sub_arlington2, formula = "pooltype", p_adj_method = "fdr")
@@ -304,7 +339,20 @@ df_ancombc2_out <- df_ancombc2_out %>%
   arrange(q_val)
 df_ancombc2_out
 
-
+relabun.ps <- transform_sample_counts(ps,function(x) x / sum(x))
+ps_order <- tax_glom(relabun.ps, taxrank = "Order", NArm = FALSE)
+ps_orderP <- subset_taxa(ps_order, Order %in% c(" Acetobacterales"," Caulobacterales"," Rhizobiales"," Rhodobacterales"," Sphingomonadales",
+									" Aeromonadales"," Burkholderiales"," Cardiobacteriales"," Chromatiales"," Enterobacterales",
+									" Pseudomonadales"," Xanthomonadales"," Bacillales"," Exiguobacterales"," Lactobacillales",
+									" Staphylococcales"," Christensenellales"," Clostridiales"," Clostridia"," Eubacteriales",
+									" Lachnospirales"," Monoglobales"," Oscillospirales"," Peptostreptococcales-Tissierellales"," Acholeplasmatales",
+									" Erysipelotrichales"," Flavobacteriales"," Bacteroidales"," Bifidobacteriales"," Corynebacteriales",
+									" Micrococcales"," Propionibacteriales"," Coriobacteriales"," Campylobacterales"," Spirochaetales"))
+order.df <- psmelt(ps_orderP)
+MySummary <- order.df %>%
+  group_by(sample.type, location, Order) %>%
+  summarize(mean_abund = mean(Abundance, na.rm=TRUE)) 
+MySummary %>% print(n = Inf)
 
 
 relabun.ps <- transform_sample_counts(ps,function(x) x / sum(x))

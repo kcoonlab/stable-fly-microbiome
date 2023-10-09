@@ -65,6 +65,15 @@ ps <- ps %>% subset_taxa( tax_table(ps)[,"Order"]!=" Chloroplast" | is.na(tax_ta
 SamDat = data.frame(sample_data(ps))
 SamDat$SampleID = row.names(SamDat)
 
+####
+
+sdt = data.frame(as(sample_data(ps), "data.frame"),
+                 TotalReads = sample_sums(ps), keep.rownames = TRUE)
+MySummary <- sdt %>%
+  group_by(sample.type) %>%
+  summarize(median_count = median(TotalReads, na.rm=TRUE)) 
+MySummary %>% print(n = Inf)
+
 #### Generate Breakaway Richness Estimates ####
 
 # Set OTU table
@@ -191,7 +200,7 @@ nrow(ordtab)
 # Percent Enterobacteriales, Bacillales, Pseudomonadales in Arlington vs. DCC-derived external fly samples
 # Percent Lactobacillales in Arlington vs. DCC-derived manure samples
 
-# Agglomerate by order and subset by prevalence
+# Agglomerate by order
 ps_order <- tax_glom(ps, taxrank = "Order", NArm = FALSE)
 ps_order_sub <- subset_taxa(ps_order, Order %in% c(" Acetobacterales"," Caulobacterales"," Rhizobiales"," Rhodobacterales"," Sphingomonadales",
 									" Aeromonadales"," Burkholderiales"," Cardiobacteriales"," Chromatiales"," Enterobacterales",
@@ -200,7 +209,39 @@ ps_order_sub <- subset_taxa(ps_order, Order %in% c(" Acetobacterales"," Caulobac
 									" Lachnospirales"," Monoglobales"," Oscillospirales"," Peptostreptococcales-Tissierellales"," Acholeplasmatales",
 									" Erysipelotrichales"," Flavobacteriales"," Bacteroidales"," Bifidobacteriales"," Corynebacteriales",
 									" Micrococcales"," Propionibacteriales"," Coriobacteriales"," Campylobacterales"," Spirochaetales"))
+relabun_ps_order_sub <- transform_sample_counts(ps_order_sub,function(x) x / sum(x))
+df_relabun_ps_order_sub <- psmelt(relabun_ps_order_sub)
+MySummary <- df_relabun_ps_order_sub %>%
+  group_by(summary, Order) %>%
+  summarize(mean_abund = mean(Abundance, na.rm=TRUE))
+MySummary %>% print(n = Inf)
+
+
+
+
+MaxSummary <- df_relabun_ps_order_sub %>%
+  group_by(summary,Order) %>%
+  summarise(max = max(Abundance, na.rm=TRUE))
+MinSummary <- df_relabun_ps_order_sub %>%
+  group_by(summary,Order) %>%
+  summarise(min = min(Abundance, na.rm=TRUE))
+MySummary <- right_join(MinSummary, MaxSummary)
+MySummary %>% print(n = Inf)
+
+
+
+
+
+MySummary <- df_relabun_ps_order_sub %>%
+  group_by(summary, Order) %>%
+  summarize(minAbund = min(Abundance, na.rm=TRUE)) %>%
+  summarize(maxAbund = max(Abundance, na.rm=TRUE))
+MySummary %>% print(n = Inf)
+
+
+
 ps_order_sub2 = subset_samples(ps_order_sub, sample.type!="Ecto")
+ps_order_sub2 = subset_samples(ps_order_sub2, location=="Arlington")
 ancombc2_out = ancombc(phyloseq = ps_order_sub2, formula = "pooltype", p_adj_method = "fdr")
 df_ancombc2_out <- data.frame(ancombc2_out$res) 
 df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
@@ -209,7 +250,19 @@ colnames(df_ancombc2_out) = col_names
 df_ancombc2_out <- df_ancombc2_out %>%
   filter(q_val < 0.05) %>%
   arrange(beta)
-df_ancombc2_out
+df_ancombc2_out #Enterobacterales*, Rhizobiales*, Staphylococcales*, Exigobacterales, Cardiobacteriales, Micrococcales*, Sphingomonadales, Caulobacterales
+
+ps_order_sub2 = subset_samples(ps_order_sub, sample.type!="Ecto")
+ps_order_sub2 = subset_samples(ps_order_sub2, location=="DCC")
+ancombc2_out = ancombc(phyloseq = ps_order_sub2, formula = "pooltype", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out #Enterobacterales*, Rhizobiales*, Propionibacteriales, Sphingomonadales, Caulobacterales, Exiguobacterales, Acetobacterales*, Xanthomonadales*, Rhodobacterales
 
 ps_order_sub_endo = subset_samples(ps_order_sub, summary=="Endo.Arlington" | summary=="Endo.DCC")
 ancombc2_out = ancombc(phyloseq = ps_order_sub_endo, formula = "summary", p_adj_method = "fdr")
@@ -220,7 +273,68 @@ colnames(df_ancombc2_out) = col_names
 df_ancombc2_out <- df_ancombc2_out %>%
   filter(q_val < 0.05) %>%
   arrange(beta)
-df_ancombc2_out
+df_ancombc2_out #Staphylococcales*
+
+ps_order_sub3 = subset_samples(ps_order_sub, sample.type!="Endo")
+ps_order_sub3 = subset_samples(ps_order_sub3, location=="Arlington")
+ancombc2_out = ancombc(phyloseq = ps_order_sub3, formula = "pooltype", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out #Enterobacterales*, Exiguobacterales*, Staphylococcales*, Sphingomonadales, Rhizobiales, Micrococcales*, Rhodobacterales, Xanthomonadales, Propionibacteriales, Caulobacterales, Aeromonadales*, Acetobacterales, Psudeomonadales*
+
+ps_order_sub3 = subset_samples(ps_order_sub, sample.type!="Endo")
+ps_order_sub3 = subset_samples(ps_order_sub3, location=="DCC")
+ancombc2_out = ancombc(phyloseq = ps_order_sub3, formula = "pooltype", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out #Enterobacterales*, Rhizobiales*, Xanthomonadales*, Sphingomonadales, Rhodobacterales*, Caulobacterales, Exiguobacterales, Acetobacterales
+
+ps_order_sub3 = subset_samples(ps_order_sub, location=="Arlington")
+ancombc2_out = ancombc(phyloseq = ps_order_sub3, formula = "pooltype", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out #Oscillospirales*, Bacteroidales*, Lachnospirales*, Peptostreptococcales-Tissierellales*, Acholeplasmatales*, Christensenellales, Monoglobales, Erysipelotrichales, Bifidobacteriales, Clostridia, Bacillales*, Spirochatales, Clostridiales
+
+ps_order_sub3 = subset_samples(ps_order_sub, location=="DCC")
+ancombc2_out = ancombc(phyloseq = ps_order_sub3, formula = "pooltype", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out #Oscillospirales*, Lachnospirales*, Bacteroidales*, Christensenellales*, Monoglobales*, Spirochatales*, Peptostreptococcales-Tissierellales, Bifidobacteriales, Erysipelotrichales, Clostridiales, Aeromonadales, Acholeplasmatales, Bacillales*, Clostridia 
+
+ps_order_sub_manure = subset_samples(ps_order_sub, pooltype=="Manure_Samples")
+ancombc2_out = ancombc(phyloseq = ps_order_sub_manure, formula = "location", p_adj_method = "fdr")
+df_ancombc2_out <- data.frame(ancombc2_out$res) 
+df_ancombc2_out$taxon <- rownames(df_ancombc2_out)
+col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
+colnames(df_ancombc2_out) = col_names
+df_ancombc2_out <- df_ancombc2_out %>%
+  filter(q_val < 0.05) %>%
+  arrange(beta)
+df_ancombc2_out #Lactobacillales*
+
+
+
+
 
 ps_order_sub3 = subset_samples(ps_order_sub, summary!="Ecto.DCC")
 ps_order_sub3 = subset_samples(ps_order_sub, sample.type!="Endo")

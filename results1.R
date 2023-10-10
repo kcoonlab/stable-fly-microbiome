@@ -457,29 +457,24 @@ MySummary %>% print(n = Inf)
 
 # Arlington vs. DCC-derived internal fly samples
 ps.Order.sub.Endo = subset_samples(ps.Order.sub, summary=="Endo.Arlington" | summary=="Endo.DCC")
-ancombc2.out = ancombc(phyloseq = ps.Order.sub.Endo, formula = "summary", p_adj_method = "fdr")
-df.ancombc2.out <- data.frame(ancombc2.out$res) 
-df.ancombc2.out$taxon <- rownames(df.ancombc2.out)
-col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
-colnames(df.ancombc2.out) = col_names
-df.ancombc2.out <- df.ancombc2.out %>%
-  filter(q_val < 0.05) %>%
-  arrange(beta)
-df.ancombc2.out
+ancombc.out = ancombc(phyloseq = ps.Order.sub.Endo, formula = "summary", p_adj_method = "fdr")
+df.ancombc.out <- data.frame(ancombc.out$res)
+df.ancombc.out <- df.ancombc.out %>%
+  filter(q_val.summaryEndo.DCC < 0.05) %>%
+  arrange(lfc.summaryEndo.DCC)
+df.ancombc.out
 
 # Arlington vs. DCC-derived manure samples
 ps.Order.sub.Manure = subset_samples(ps.Order.sub, pooltype=="Manure_Samples")
-ancombc2.out = ancombc(phyloseq = ps.Order.sub.Manure, formula = "location", p_adj_method = "fdr")
-df.ancombc2.out <- data.frame(ancombc2.out$res) 
-df.ancombc2.out$taxon <- rownames(df.ancombc2.out)
-col_names = c("beta", "se", "W", "p_val", "q_val", "diff_abn", "Taxon")
-colnames(df.ancombc2.out) = col_names
-df.ancombc2.out <- df.ancombc2.out %>%
-  filter(q_val < 0.05) %>%
-  arrange(beta)
-df.ancombc2.out
+ancombc.out = ancombc(phyloseq = ps.Order.sub.Manure, formula = "location", p_adj_method = "fdr")
+df.ancombc.out <- data.frame(ancombc.out$res) 
+df.ancombc.out <- df.ancombc.out %>%
+  filter(q_val.locationDCC < 0.05) %>%
+  arrange(lfc.locationDCC)
+df.ancombc.out
 
 #### Taxonomic Bar Plots ####
+#### Goal: Visualize diversity at the bacterial order level in... ####
 
 variable1 = as.character(get_variable(ps, "sample.type"))
 variable2 = as.character(get_variable(ps, "location"))
@@ -862,7 +857,7 @@ DistVar = phyloseq::distance(ps.arlington, method = "bray")
 psData = data.frame(sample_data(ps.arlington))
 
 # Run PERMANOVA by sample type
-adonis2(DistVar ~ sample.type, data = psData, method = "bray")
+adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.20827
 
 # Create a function for pairwise comparisons, to test significant effects between each treatment
 pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
@@ -921,579 +916,46 @@ pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'b
   return(pairw.res)
 } 
 
-# Run pairwise adonis function on distance variable, if there was a significant overall effect
-pairwise.adonis(DistVar,psData$sample.type)
+## Run pairwise adonis function on distance variable, if there was a significant overall effect
+pairwise.adonis(DistVar,psData$sample.type) #Endo vs Manure, P = 0.001, R2 = 0.21894951
+											#Endo vs Ecto, P = 0.001, R2 = 0.02241678
+											#Manure vs Ecto, P = 0.001, R2 = 0.27201652
 
 # Statistical comparison of disperson within each sample type
-# using betadisper, which is more robust than ANOVA of BC-Dis values
-# See Anderson (2006) for a discussion on tests of multivariate dispersion.
-# Run this separately for each treatment
 beta = betadisper(DistVar, psData$sample.type)
 anova(beta) #p < 0.0001
 test = permutest(beta, pairwise=TRUE, permutations=999)
 test
 Tukey=TukeyHSD(beta, conf.level = 0.95)
-Tukey
+Tukey   #Endo-Ecto, p = 0.474525
+		#Manure-Ecto, p = 0.0000000
+		#Manure-Endo, p = 0.0000000
 
 # Now DCC samples
 
-# Create a variable that is your distance matrix; You'll need this later.
 ps.dcc <- subset_samples(ps, location=="DCC")
 DistVar = phyloseq::distance(ps.dcc, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.dcc))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.27551
-
-# Create a function for pairwise comparisons, to test significant effects between each treatment
-pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
-{
-  co <- combn(unique(as.character(factors)),2)
-  pairs <- c()
-  Df <- c()
-  SumsOfSqs <- c()
-  F.Model <- c()
-  R2 <- c()
-  p.value <- c()
-  
-  for(elem in 1:ncol(co)){
-    if(inherits(x, 'dist')){
-      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
-                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
-    }
-    
-    else  (
-      if (sim.function == 'daisy'){
-        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
-      } 
-      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
-    )
-    
-    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
-                 permutations = perm);
-    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
-    Df <- c(Df,ad[1,1])
-    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
-    F.Model <- c(F.Model,ad[1,4]);
-    R2 <- c(R2,ad[1,3]);
-    p.value <- c(p.value,ad[1,5])
-  }
-  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
-  
-  sig = c(rep('',length(p.adjusted)))
-  sig[p.adjusted <= 0.05] <-'.'
-  sig[p.adjusted <= 0.01] <-'*'
-  sig[p.adjusted <= 0.001] <-'**'
-  sig[p.adjusted <= 0.0001] <-'***'
-  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
-  
-  if(!is.null(reduce)){
-    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
-    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
-    
-    sig = c(rep('',length(pairw.res$p.adjusted)))
-    sig[pairw.res$p.adjusted <= 0.1] <-'.'
-    sig[pairw.res$p.adjusted <= 0.05] <-'*'
-    sig[pairw.res$p.adjusted <= 0.01] <-'**'
-    sig[pairw.res$p.adjusted <= 0.001] <-'***'
-    pairw.res <- data.frame(pairw.res[,1:7],sig)
-  }
-  class(pairw.res) <- c("pwadonis", "data.frame")
-  return(pairw.res)
-} 
-
-# Run pairwise adonis function on distance variable, if there was a significant overall effect
-pairwise.adonis(DistVar,psData$sample.type)
+pairwise.adonis(DistVar,psData$sample.type) #Endo vs Manure, P = 0.0015, R2 = 0.23712525
+											#Endo vs Ecto, P = 0.2450, R2 = 0.06741974
+											#Manure vs Ecto, P = 0.0015, R2 = 0.16003274
 beta = betadisper(DistVar, psData$sample.type)
-anova(beta)
+anova(beta) #p < 0.0001
 test = permutest(beta, pairwise=TRUE, permutations=999)
 test
 Tukey=TukeyHSD(beta, conf.level = 0.95)
-Tukey
+Tukey   #Endo-Ecto, p = 0.0829371
+		#Manure-Ecto, p = 0.0596323
+		#Manure-Endo, p = 0.0000000
 
 #### PERMANOVA on BC-Dissimilaity (PCoA) ####
-#### Goal: We want to know whether the distances between samples correspond to their sampling date ####
-                                  
+#### Goal: We want to know whether the distances between samples correspond to their source, irrespective of sampling date/facility ####
+
 # Arlington samples first
-
-# Create a variable that is your distance matrix; You'll need this later.
-ps.arlington <- subset_samples(ps, location=="Arlington")
-DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
-psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
-adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.07157
-
-# Create a function for pairwise comparisons, to test significant effects between each treatment
-pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
-{
-  co <- combn(unique(as.character(factors)),2)
-  pairs <- c()
-  Df <- c()
-  SumsOfSqs <- c()
-  F.Model <- c()
-  R2 <- c()
-  p.value <- c()
-  
-  for(elem in 1:ncol(co)){
-    if(inherits(x, 'dist')){
-      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
-                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
-    }
-    
-    else  (
-      if (sim.function == 'daisy'){
-        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
-      } 
-      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
-    )
-    
-    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
-                 permutations = perm);
-    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
-    Df <- c(Df,ad[1,1])
-    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
-    F.Model <- c(F.Model,ad[1,4]);
-    R2 <- c(R2,ad[1,3]);
-    p.value <- c(p.value,ad[1,5])
-  }
-  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
-  
-  sig = c(rep('',length(p.adjusted)))
-  sig[p.adjusted <= 0.05] <-'.'
-  sig[p.adjusted <= 0.01] <-'*'
-  sig[p.adjusted <= 0.001] <-'**'
-  sig[p.adjusted <= 0.0001] <-'***'
-  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
-  
-  if(!is.null(reduce)){
-    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
-    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
-    
-    sig = c(rep('',length(pairw.res$p.adjusted)))
-    sig[pairw.res$p.adjusted <= 0.1] <-'.'
-    sig[pairw.res$p.adjusted <= 0.05] <-'*'
-    sig[pairw.res$p.adjusted <= 0.01] <-'**'
-    sig[pairw.res$p.adjusted <= 0.001] <-'***'
-    pairw.res <- data.frame(pairw.res[,1:7],sig)
-  }
-  class(pairw.res) <- c("pwadonis", "data.frame")
-  return(pairw.res)
-} 
-
-# Run pairwise adonis function on distance variable, if there was a significant overall effect
-pairwise.adonis(DistVar,psData$sampling.date) #All NS
-
-# Statistical comparison of disperson within each sample type
-beta = betadisper(DistVar, psData$sampling.date)
-anova(beta) #p = 0.1603
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #p = 0.158
-
-# Now DCC samples
-
-# Create a variable that is your distance matrix; You'll need this later.
-ps.dcc <- subset_samples(ps, location=="DCC")
-DistVar = phyloseq::distance(ps.dcc, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
-psData = data.frame(sample_data(ps.dcc))
-
-# Run PERMANOVA by sample type
-adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.01, R2 = 0.18474
-
-# Create a function for pairwise comparisons, to test significant effects between each treatment
-pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
-{
-  co <- combn(unique(as.character(factors)),2)
-  pairs <- c()
-  Df <- c()
-  SumsOfSqs <- c()
-  F.Model <- c()
-  R2 <- c()
-  p.value <- c()
-  
-  for(elem in 1:ncol(co)){
-    if(inherits(x, 'dist')){
-      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
-                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
-    }
-    
-    else  (
-      if (sim.function == 'daisy'){
-        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
-      } 
-      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
-    )
-    
-    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
-                 permutations = perm);
-    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
-    Df <- c(Df,ad[1,1])
-    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
-    F.Model <- c(F.Model,ad[1,4]);
-    R2 <- c(R2,ad[1,3]);
-    p.value <- c(p.value,ad[1,5])
-  }
-  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
-  
-  sig = c(rep('',length(p.adjusted)))
-  sig[p.adjusted <= 0.05] <-'.'
-  sig[p.adjusted <= 0.01] <-'*'
-  sig[p.adjusted <= 0.001] <-'**'
-  sig[p.adjusted <= 0.0001] <-'***'
-  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
-  
-  if(!is.null(reduce)){
-    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
-    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
-    
-    sig = c(rep('',length(pairw.res$p.adjusted)))
-    sig[pairw.res$p.adjusted <= 0.1] <-'.'
-    sig[pairw.res$p.adjusted <= 0.05] <-'*'
-    sig[pairw.res$p.adjusted <= 0.01] <-'**'
-    sig[pairw.res$p.adjusted <= 0.001] <-'***'
-    pairw.res <- data.frame(pairw.res[,1:7],sig)
-  }
-  class(pairw.res) <- c("pwadonis", "data.frame")
-  return(pairw.res)
-} 
-
-## Run pairwise adonis function on distance variable, if there was a significant overall effect
-pairwise.adonis(DistVar,psData$sampling.date) #All NS
-
-# Statistical comparison of disperson within each sample type
-beta = betadisper(DistVar, psData$sampling.date)
-anova(beta) #p = 0.007631
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #p = 0.011
-Tukey=TukeyHSD(beta, conf.level = 0.95)
-Tukey   #All NS
-
-#### PERMANOVA on BC-Dissimilaity (PCoA) ####
-#### Goal: We want to know whether the distances between samples correspond to their sampling location within a given facility ####
-
-# Arlington manure samples first
-
-# Create a variable that is your distance matrix; You'll need this later.
-ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type=="Manure")
-DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
-psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
-adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.001, R2 = 0.20767
-adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.007, R2 = 0.21004
-
-# Create a function for pairwise comparisons, to test significant effects between each treatment
-pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
-{
-  co <- combn(unique(as.character(factors)),2)
-  pairs <- c()
-  Df <- c()
-  SumsOfSqs <- c()
-  F.Model <- c()
-  R2 <- c()
-  p.value <- c()
-  
-  for(elem in 1:ncol(co)){
-    if(inherits(x, 'dist')){
-      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
-                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
-    }
-    
-    else  (
-      if (sim.function == 'daisy'){
-        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
-      } 
-      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
-    )
-    
-    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
-                 permutations = perm);
-    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
-    Df <- c(Df,ad[1,1])
-    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
-    F.Model <- c(F.Model,ad[1,4]);
-    R2 <- c(R2,ad[1,3]);
-    p.value <- c(p.value,ad[1,5])
-  }
-  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
-  
-  sig = c(rep('',length(p.adjusted)))
-  sig[p.adjusted <= 0.05] <-'.'
-  sig[p.adjusted <= 0.01] <-'*'
-  sig[p.adjusted <= 0.001] <-'**'
-  sig[p.adjusted <= 0.0001] <-'***'
-  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
-  
-  if(!is.null(reduce)){
-    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
-    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
-    
-    sig = c(rep('',length(pairw.res$p.adjusted)))
-    sig[pairw.res$p.adjusted <= 0.1] <-'.'
-    sig[pairw.res$p.adjusted <= 0.05] <-'*'
-    sig[pairw.res$p.adjusted <= 0.01] <-'**'
-    sig[pairw.res$p.adjusted <= 0.001] <-'***'
-    pairw.res <- data.frame(pairw.res[,1:7],sig)
-  }
-  class(pairw.res) <- c("pwadonis", "data.frame")
-  return(pairw.res)
-} 
-
-## Run pairwise adonis function on distance variable, if there was a significant overall effect
-pairwise.adonis(DistVar,psData$trap) # Arl-M1 vs Arl-sickpen, p = 0.01000000
-									 # Arl-M5 vs Arl-sickpen, p = 0.00750000
-									 # Arl-M4 vs Arl-sickpen, p = 0.00750000
-
-pairwise.adonis(DistVar,psData$sampling.date) # All NS
-
-# Statistical comparison of disperson within each sample type
-# using betadisper, which is more robust than ANOVA of BC-Dis values
-# See Anderson (2006) for a discussion on tests of multivariate dispersion.
-# Run this separately for each treatment
-beta = betadisper(DistVar, psData$trap)
-anova(beta) #p = 0.1947
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #p = 0.183
-
-beta = betadisper(DistVar, psData$sampling.date)
-anova(beta) #NS
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #NS
-
-# Now Arlington flies
-
-# Create a variable that is your distance matrix; You'll need this later.
-ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type!="Manure")
-DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
-psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
-adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.003, R2 = 0.03326
-adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.12424
-
-# Create a function for pairwise comparisons, to test significant effects between each treatment
-pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
-{
-  co <- combn(unique(as.character(factors)),2)
-  pairs <- c()
-  Df <- c()
-  SumsOfSqs <- c()
-  F.Model <- c()
-  R2 <- c()
-  p.value <- c()
-  
-  for(elem in 1:ncol(co)){
-    if(inherits(x, 'dist')){
-      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
-                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
-    }
-    
-    else  (
-      if (sim.function == 'daisy'){
-        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
-      } 
-      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
-    )
-    
-    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
-                 permutations = perm);
-    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
-    Df <- c(Df,ad[1,1])
-    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
-    F.Model <- c(F.Model,ad[1,4]);
-    R2 <- c(R2,ad[1,3]);
-    p.value <- c(p.value,ad[1,5])
-  }
-  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
-  
-  sig = c(rep('',length(p.adjusted)))
-  sig[p.adjusted <= 0.05] <-'.'
-  sig[p.adjusted <= 0.01] <-'*'
-  sig[p.adjusted <= 0.001] <-'**'
-  sig[p.adjusted <= 0.0001] <-'***'
-  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
-  
-  if(!is.null(reduce)){
-    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
-    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
-    
-    sig = c(rep('',length(pairw.res$p.adjusted)))
-    sig[pairw.res$p.adjusted <= 0.1] <-'.'
-    sig[pairw.res$p.adjusted <= 0.05] <-'*'
-    sig[pairw.res$p.adjusted <= 0.01] <-'**'
-    sig[pairw.res$p.adjusted <= 0.001] <-'***'
-    pairw.res <- data.frame(pairw.res[,1:7],sig)
-  }
-  class(pairw.res) <- c("pwadonis", "data.frame")
-  return(pairw.res)
-} 
-
-## Run pairwise adonis function on distance variable, if there was a significant overall effect
-pairwise.adonis(DistVar,psData$trap) # All NS
-pairwise.adonis(DistVar,psData$sampling.date) # 7.16.2021 vs 7.30.2021, P = 0.047520000 later
-											  # 7.16.2021 vs 8.6.2021, P = 0.003600000 later
-											  # 7.16.2021 vs 8.13.2021, P = 0.009473684 later
-											  # 7.16.2021 vs 9.10.2021, P = 0.046500000 later
-											  # 7.23.2021 vs 8.13.2021, P = 0.003600000 later
-											  # 7.23.2021 vs 7.9.2021, P = 0.009473684 earliest
-											  # 7.23.2021 vs 8.27.2021, P = 0.003600000 later
-											  # 7.23.2021 vs 9.10.2021, P = 0.009473684 later
-											  # 7.30.2021 vs 8.6.2021, P = 0.044181818 later
-											  # 7.30.2021 vs 8.13.2021, P = 0.003600000 later
-											  # 7.30.2021 vs 7.9.2021, P = 0.009473684 earliest
-											  # 7.30.2021 vs 8.27.2021, P = 0.005538462 later
-											  # 7.30.2021 vs 9.10.2021, P = 0.007714286 later
-											  # 8.6.2021 vs 8.13.2021, P = 0.003600000 later
-											  # 8.6.2021 vs 7.9.2021, P = 0.005538462 earliest
-											  # 8.6.2021 vs 8.27.2021, P = 0.003600000 later
-											  # 8.6.2021 vs 9.10.2021, P = 0.003600000 later
-											  # 8.13.2021 vs 7.9.2021, P = 0.003600000 earliest
-											  # 8.13.2021 vs 8.20.2021, P = 0.005538462 later
-											  # 8.13.2021 vs 8.27.2021, P = 0.003600000 later
-											  # 7.9.2021 vs 8.20.2021, P = 0.046500000 later
-											  # 7.9.2021 vs 8.27.2021, P = 0.029142857 later
-											  # 7.9.2021 vs 9.10.2021, P = 0.003600000 later
-											  # 8.20.2021 vs 8.27.2021, P = 0.012600000 later
-											  # 8.27.2021 vs 9.10.2021, P = 0.009473684 later
-
-# Statistical comparison of disperson within each sample type
-# using betadisper, which is more robust than ANOVA of BC-Dis values
-# See Anderson (2006) for a discussion on tests of multivariate dispersion.
-# Run this separately for each treatment
-beta = betadisper(DistVar, psData$trap)
-anova(beta) #p = 0.8433
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #p = 0.86
-
-beta = betadisper(DistVar, psData$sampling.date)
-anova(beta) #p = 0.005938
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #p = 0.007	
-Tukey=TukeyHSD(beta, conf.level = 0.95)
-Tukey   # 8.13.2021-7.23.2021, P = 0.0304901
-		# 8.27.2021-7.23.2021, P = 0.0036722
-
-# Now DCC manure
-
-# Create a variable that is your distance matrix; You'll need this later.
-ps.dcc <- subset_samples(ps, location=="DCC"&sample.type=="Manure")
-DistVar = phyloseq::distance(ps.dcc, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
-psData = data.frame(sample_data(ps.dcc))
-
-# Run PERMANOVA by sample type
-adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.006, R2 = 0.107
-adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.27937
-
-# Create a function for pairwise comparisons, to test significant effects between each treatment
-pairwise.adonis <- function(x,factors, sim.function = 'vegdist', sim.method = 'bray', p.adjust.m ='BH',reduce=NULL,perm=999)
-{
-  co <- combn(unique(as.character(factors)),2)
-  pairs <- c()
-  Df <- c()
-  SumsOfSqs <- c()
-  F.Model <- c()
-  R2 <- c()
-  p.value <- c()
-  
-  for(elem in 1:ncol(co)){
-    if(inherits(x, 'dist')){
-      x1=as.matrix(x)[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),
-                      factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))]
-    }
-    
-    else  (
-      if (sim.function == 'daisy'){
-        x1 = daisy(x[factors %in% c(co[1,elem],co[2,elem]),],metric=sim.method)
-      } 
-      else{x1 = vegdist(x[factors %in% c(co[1,elem],co[2,elem]),],method=sim.method)}
-    )
-    
-    ad <- adonis2(x1 ~ factors[factors %in% c(co[1,elem],co[2,elem])],
-                 permutations = perm);
-    pairs <- c(pairs,paste(co[1,elem],'vs',co[2,elem]));
-    Df <- c(Df,ad[1,1])
-    SumsOfSqs <- c(SumsOfSqs, ad[1,2])
-    F.Model <- c(F.Model,ad[1,4]);
-    R2 <- c(R2,ad[1,3]);
-    p.value <- c(p.value,ad[1,5])
-  }
-  p.adjusted <- p.adjust(p.value,method=p.adjust.m)
-  
-  sig = c(rep('',length(p.adjusted)))
-  sig[p.adjusted <= 0.05] <-'.'
-  sig[p.adjusted <= 0.01] <-'*'
-  sig[p.adjusted <= 0.001] <-'**'
-  sig[p.adjusted <= 0.0001] <-'***'
-  pairw.res <- data.frame(pairs,Df,SumsOfSqs,F.Model,R2,p.value,p.adjusted,sig)
-  
-  if(!is.null(reduce)){
-    pairw.res <- subset (pairw.res, grepl(reduce,pairs))
-    pairw.res$p.adjusted <- p.adjust(pairw.res$p.value,method=p.adjust.m)
-    
-    sig = c(rep('',length(pairw.res$p.adjusted)))
-    sig[pairw.res$p.adjusted <= 0.1] <-'.'
-    sig[pairw.res$p.adjusted <= 0.05] <-'*'
-    sig[pairw.res$p.adjusted <= 0.01] <-'**'
-    sig[pairw.res$p.adjusted <= 0.001] <-'***'
-    pairw.res <- data.frame(pairw.res[,1:7],sig)
-  }
-  class(pairw.res) <- c("pwadonis", "data.frame")
-  return(pairw.res)
-} 
-
-## Run pairwise adonis function on distance variable, if there was a significant overall effect
-pairwise.adonis(DistVar,psData$trap) #DCC-Q4 vs DCC-Q2, P = 0.01333333, R2 = 0.09505496
-									 #DCC-Outdoor vs DCC-Q2, P = 0.01333333, R2 = 0.08699574
-									 #DCC-Q2 vs DCC-Q3, P = 0.01333333, R2 = 0.09749623
-
-pairwise.adonis(DistVar,psData$sampling.date) #All NS
-
-beta = betadisper(DistVar, psData$trap)
-anova(beta) #p = 0.301
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #p = 0.301
-
-beta = betadisper(DistVar, psData$sampling.date)
-anova(beta) #p = 0.0325
-test = permutest(beta, pairwise=TRUE, permutations=999)
-test #p = 0.033
-Tukey=TukeyHSD(beta, conf.level = 0.95)
-Tukey   # All NS
-
-# DCC flies
-
-# Create a variable that is your distance matrix; You'll need this later.
-ps.dcc <- subset_samples(ps, location=="DCC"&sample.type!="Manure")
-DistVar = phyloseq::distance(ps.dcc, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
-psData = data.frame(sample_data(ps.dcc))
-
-# Run PERMANOVA by sample type
-adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.053, R2 = 0.40492
-
-#### PCoA to compare communities in different sample types across sampling dates within each facility ####
-#### Arlington samples first
-
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.9.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.29026
 
 beta = betadisper(DistVar, psData$sample.type)
@@ -1503,11 +965,7 @@ test #p = 0.008
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.16.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.24944
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1539,11 +997,7 @@ Tukey   #Endo-Ecto, NS
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.23.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.23464
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1575,11 +1029,7 @@ Tukey   #Endo-Ecto, NS
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.30.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.31196
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1611,11 +1061,7 @@ Tukey   #Endo-Ecto, NS
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.6.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.27685
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1647,11 +1093,7 @@ Tukey   #Endo-Ecto, NS
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.13.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.30888
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1679,11 +1121,7 @@ test #NS
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.20.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.33131
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1715,11 +1153,7 @@ Tukey   #Endo-Ecto, NS
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.27.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.38051
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1747,11 +1181,7 @@ test #NS
 
 ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="9.10.2021")
 DistVar = phyloseq::distance(ps.arlington, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.arlington))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.001, R2 = 0.33398
 
 co <- combn(unique(as.character(psData$sample.type)),2)  
@@ -1777,13 +1207,10 @@ anova(beta) #NS
 test = permutest(beta, pairwise=TRUE, permutations=999)
 test #NS
 
+# Now DCC samples
 ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.15.2021")
 DistVar = phyloseq::distance(ps.dcc, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.dcc))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.008, R2 = 0.4281
 
 beta = betadisper(DistVar, psData$sample.type)
@@ -1793,14 +1220,137 @@ test #p = 0.001
 
 ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.22.2021")
 DistVar = phyloseq::distance(ps.dcc, method = "bray")
-
-# Extract the sample_data from the phyloseq object and turn it into a dataframe; You'll need this later.
 psData = data.frame(sample_data(ps.dcc))
-
-# Run PERMANOVA by sample type
 adonis2(DistVar ~ sample.type, data = psData, method = "bray") #P = 0.007, R2 = 0.40679
 
 beta = betadisper(DistVar, psData$sample.type)
 anova(beta) #p = 0.0002131
 test = permutest(beta, pairwise=TRUE, permutations=999)
 test #p = 0.001
+
+#### PERMANOVA on BC-Dissimilaity (PCoA) ####
+#### We want to know whether the distances between samples correspond to their sampling location within a given facility ####
+
+# Arlington manure samples first
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type=="Manure")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+psData = data.frame(sample_data(ps.arlington))
+adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.001, R2 = 0.20767
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.007, R2 = 0.21004
+pairwise.adonis(DistVar,psData$trap) # Arl-M1 vs Arl-sickpen, p = 0.01000000
+									 # Arl-M5 vs Arl-sickpen, p = 0.00750000
+									 # Arl-M4 vs Arl-sickpen, p = 0.00750000
+pairwise.adonis(DistVar,psData$sampling.date) # All NS
+beta = betadisper(DistVar, psData$trap)
+anova(beta) #p = 0.1947
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.183
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #NS
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #NS
+
+# Now Arlington flies
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type!="Manure")
+DistVar = phyloseq::distance(ps.arlington, method = "bray")
+psData = data.frame(sample_data(ps.arlington))
+adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.003, R2 = 0.03326
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.12424
+pairwise.adonis(DistVar,psData$trap) # All NS
+pairwise.adonis(DistVar,psData$sampling.date) # 7.16.2021 vs 7.30.2021, P = 0.047520000 later
+											  # 7.16.2021 vs 8.6.2021, P = 0.003600000 later
+											  # 7.16.2021 vs 8.13.2021, P = 0.009473684 later
+											  # 7.16.2021 vs 9.10.2021, P = 0.046500000 later
+											  # 7.23.2021 vs 8.13.2021, P = 0.003600000 later
+											  # 7.23.2021 vs 7.9.2021, P = 0.009473684 earliest
+											  # 7.23.2021 vs 8.27.2021, P = 0.003600000 later
+											  # 7.23.2021 vs 9.10.2021, P = 0.009473684 later
+											  # 7.30.2021 vs 8.6.2021, P = 0.044181818 later
+											  # 7.30.2021 vs 8.13.2021, P = 0.003600000 later
+											  # 7.30.2021 vs 7.9.2021, P = 0.009473684 earliest
+											  # 7.30.2021 vs 8.27.2021, P = 0.005538462 later
+											  # 7.30.2021 vs 9.10.2021, P = 0.007714286 later
+											  # 8.6.2021 vs 8.13.2021, P = 0.003600000 later
+											  # 8.6.2021 vs 7.9.2021, P = 0.005538462 earliest
+											  # 8.6.2021 vs 8.27.2021, P = 0.003600000 later
+											  # 8.6.2021 vs 9.10.2021, P = 0.003600000 later
+											  # 8.13.2021 vs 7.9.2021, P = 0.003600000 earliest
+											  # 8.13.2021 vs 8.20.2021, P = 0.005538462 later
+											  # 8.13.2021 vs 8.27.2021, P = 0.003600000 later
+											  # 7.9.2021 vs 8.20.2021, P = 0.046500000 later
+											  # 7.9.2021 vs 8.27.2021, P = 0.029142857 later
+											  # 7.9.2021 vs 9.10.2021, P = 0.003600000 later
+											  # 8.20.2021 vs 8.27.2021, P = 0.012600000 later
+											  # 8.27.2021 vs 9.10.2021, P = 0.009473684 later
+beta = betadisper(DistVar, psData$trap)
+anova(beta) #p = 0.8433
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.86
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #p = 0.005938
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.007	
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   # 8.13.2021-7.23.2021, P = 0.0304901
+		# 8.27.2021-7.23.2021, P = 0.0036722
+
+# Now DCC manure
+ps.dcc <- subset_samples(ps, location=="DCC"&sample.type=="Manure")
+DistVar = phyloseq::distance(ps.dcc, method = "bray")
+psData = data.frame(sample_data(ps.dcc))
+adonis2(DistVar ~ trap, data = psData, method = "bray") #P = 0.006, R2 = 0.107
+adonis2(DistVar ~ sampling.date, data = psData, method = "bray") #P = 0.001, R2 = 0.27937
+pairwise.adonis(DistVar,psData$trap) #DCC-Q4 vs DCC-Q2, P = 0.01333333, R2 = 0.09505496
+									 #DCC-Outdoor vs DCC-Q2, P = 0.01333333, R2 = 0.08699574
+									 #DCC-Q2 vs DCC-Q3, P = 0.01333333, R2 = 0.09749623
+pairwise.adonis(DistVar,psData$sampling.date) #All NS
+beta = betadisper(DistVar, psData$trap)
+anova(beta) #p = 0.301
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.301
+beta = betadisper(DistVar, psData$sampling.date)
+anova(beta) #p = 0.0325
+test = permutest(beta, pairwise=TRUE, permutations=999)
+test #p = 0.033
+Tukey=TukeyHSD(beta, conf.level = 0.95)
+Tukey   # All NS
+
+#### Taxonomic Bar Plots ####
+#### Goal: Visualize diversity at the bacterial order level in... ####
+
+variable1 = as.character(get_variable(ps, "sample.type"))
+variable2 = as.character(get_variable(ps, "location"))
+variable3 = as.character(get_variable(ps, "trap"))
+sample_data(ps)$NewPastedVar <- mapply(paste0, variable1, variable2, variable3, collapse = "_")
+ps.Merged <- merge_samples(ps, "NewPastedVar")
+metadata <- data.frame(sample_data(ps.Merged))
+orderAbdDF.byLocation <- MakeAbundanceDF(physeq = ps.Merged,
+                               taxRank = "Order",
+                               abundanceFilter = 0.02)
+# write.csv(orderAbdDF.byLocation, "orderAbdDF.byLocation.csv", row.names=FALSE)
+        
+orderAbdDF.byLocation.Formatted <- read.csv('orderAbdDF.byLocation_formatted.csv',header=TRUE)
+metadata <- metadata %>%
+  rownames_to_column(var = "Sample")
+sampleLevels <- as.character(metadata$Sample)
+sampleLabels <- metadata %>%
+  dplyr::select(Sample)
+sampleLabelsVec <- sampleLabels$Sample
+names(sampleLabelsVec) <- sampleLabels$Sample
+orderAbdDF.byLocation.Formatted$Sample <- factor(orderAbdDF.byLocation.Formatted$Sample, levels = sampleLevels)
+orderAbdDF.byLocation.Formatted$Order <- factor(orderAbdDF.byLocation.Formatted$Order, levels=c(" Acetobacterales"," Rhizobiales"," Rhodobacterales",
+									" Aeromonadales"," Burkholderiales"," Cardiobacteriales"," Chromatiales"," Enterobacterales",
+									" Pseudomonadales"," Xanthomonadales"," Bacillales"," Exiguobacterales"," Lactobacillales",
+									" Staphylococcales"," Christensenellales",
+									" Lachnospirales"," Monoglobales"," Oscillospirales"," Peptostreptococcales-Tissierellales"," Acholeplasmatales",
+									" Erysipelotrichales"," Flavobacteriales"," Bacteroidales"," Bifidobacteriales"," Corynebacteriales",
+									" Micrococcales"," Spirochaetales"))
+cbPalette <- unique(orderAbdDF.byLocation.Formatted$Color)
+orderCompPlot <- ggplot(orderAbdDF.byLocation.Formatted,
+                         aes_string(x = "Sample", y = "Abundance",
+                                    fill = "Order")) +
+  geom_bar(stat = "identity", width = 1) +
+  theme_bw() +
+  scale_x_discrete(labels = sampleLabelsVec) +
+  scale_fill_manual(values=cbPalette)
+orderCompPlot				  

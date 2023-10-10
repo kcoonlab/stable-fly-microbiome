@@ -1083,6 +1083,7 @@ p = p + theme(legend.text = element_text(size = 10))
 p$layers = p$layers[-1] #to remove the larger point coded in original plot
 p
 
+
 #### Now Arlington flies
 
 # Create PCoA ordination

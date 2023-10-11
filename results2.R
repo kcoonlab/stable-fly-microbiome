@@ -376,8 +376,8 @@ ggplot(summary, aes(x = date, y = number_of_ASVs.x)) +
 
 #### Goal: Calculate relative abundance of fly-associated taxa that are shared with manure collected from the same facility (or not), across different sampling dates (Fig. S9) ####
 
-data.endo <- data[data$fly.source=="Endo",]
-data_summary <- aggregate(percent_shared ~ as.factor(date), data.endo,
+data.endo <- F1PerspectiveRA.3[F1PerspectiveRA.3$source=="Endo",]
+data_summary <- aggregate(percent ~ as.factor(date), data.endo,
                           function(x) c(mean = mean(x),
                                         se = sd(x) / sqrt(length(x))))
 data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
@@ -388,8 +388,8 @@ ggplot(data_summary) +
     geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 
-data.ecto <- data[data$fly.source=="Ecto",]
-data_summary <- aggregate(percent_shared ~ as.factor(date), data.ecto,
+data.ecto <- F1PerspectiveRA.3[F1PerspectiveRA.3$source=="Ecto",]
+data_summary <- aggregate(percent ~ as.factor(date), data.ecto,
                           function(x) c(mean = mean(x),
                                         se = sd(x) / sqrt(length(x))))
 data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
@@ -452,17 +452,17 @@ myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", 
 names(myColors) <- ASVNames
 
 #Manure
-ggplot(otus, aes(fill=ASV, y=Manure, x="")) + #Fig. 7
+ggplot(otus, aes(fill=ASV, y=Manure, x="")) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 				     
 #Ecto
-ggplot(otus, aes(fill=ASV, y=Ecto, x="")) + #Fig. 7
+ggplot(otus, aes(fill=ASV, y=Ecto, x="")) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 				     
 #Endo
-ggplot(otus, aes(fill=ASV, y=Ecto, x="")) + #Fig. 7
+ggplot(otus, aes(fill=ASV, y=Ecto, x="")) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 
@@ -519,53 +519,27 @@ GetSampleSum <- function(sampleName, physeqObject) {
 
 #-------------------------------------------------------#
 
-# Pull out sample data
 sampleData <- data.frame(sample_data(ps.Merged))
 sampleData$sample.type <- unlist(sampleData$sample.type)
 sampleData$sampling.date <- unlist(sampleData$sampling.date)
 
-# Pull out ASV count table
 abdTable <- as.matrix(otu_table(ps.Merged))
 if (!taxa_are_rows(abdTable)) {
   abdTable <- t(abdTable)
 }
 abdTable <- as.data.frame(abdTable)
 
-# Populate Classes
-
-# This list will hold the Family objects once completed
 familyClassList <- list()
 
-# Loop over the rows of the sample data data frame, building the objects by
-#   familiy group number.  But we only want to build it once, so when we run
-#   across the family group number again we don't want to re-build it.
-
 for (i in 1:nrow(sampleData)) {
-  # Get the current family group from the sample data table
   currentFamilyGroup <- sampleData[i, "sampling.date"]
-  
-  # Get all the current family names in familyClassList to check if 
-  #   currentFamilyGroup has already been built:
   familyNames <- names(familyClassList)
-  
-  # If the current family group has not been built, build it:
   if (!(currentFamilyGroup %in% familyNames)){
-    # Populate the family_group slot:
-    # Create a list of sample names for all the samples in the current family group
-    #   by subsetting the sample data df and extracting the sample names as a char
-    #   vector.  Then, add to the memberList list that will be looped over to
-    #   build each FamilyMember object for the current Family.
     members <- sampleData %>%
       filter(sampling.date == currentFamilyGroup) %>%
       dplyr::select(as.vector("sample_id"))
     memberList <- as.list(members$sample_id)
-    
-    # Create an empty list to hold FamilyMember objects which will be added to the 
-    #   Family object in the end.
     currentFamilyMembersList <- list()
-    
-    # Loop over the sample names in memberList and build a new FamilyMember object for
-    #   each sample:
     for (sample in memberList) {
       newMember <- new("FamilyMember",
                        family_group = currentFamilyGroup,
@@ -573,63 +547,35 @@ for (i in 1:nrow(sampleData)) {
                        sample_designation = sampleData$sample.type[sampleData$sample_id == sample],
                        sample_sum = GetSampleSum(sample, ps.Merged),
                        ASV_counts = CountASVs(sample, abdTable))
-    # Add this new FamilyMember object to currentFamilyMemberList:
     currentFamilyMembersList[[sample]] <- newMember
     }
-    
-    # Now that the member list is complete, get a total read sum to be put into the 
-    #  Family object (sum of each family member's total read count).
     totalSum <- 0
     for (member in currentFamilyMembersList) {
       sampleSum <- member@sample_sum
       totalSum <- sum(totalSum, sampleSum)
     }
-    
-    # We now have all the components needed to create new Family object.
     newFamily <- new("Family", 
                      family_group = currentFamilyGroup,
                      member_list = currentFamilyMembersList,
                      family_sum = totalSum)
-    # Add to list
     familyClassList[[currentFamilyGroup]] <- newFamily
   }
 }
 
-# Select "Valid" Families
-
-#Families including a mother and at least one infant.
-
 #----- Determine which family groups are valid -----# 
 
-# A valid Family must have at least one mother and one infant:
-# So a Family object should have a family_member list equal to length 3 or
-# equal to length 2 where one of the sample_designation values is "mother"
-
-# Create a list to hold the valid Family objects:
 validFamilies <- familyClassList
 
-# Infant Perspective 
-
 #----- Populate Table for Plotting Infants -----#
-
-# This is for the "infant perspective" plot.
-
-# Goal: generate a data frame holding all infants and all their ASVs (as rows). For each
-#   ASV in the given infant, count the number of reads and
-#   the percentage of the total reads in the infant that the ASV accounts for
-#   ("infant_percent" column.)
 
 allF1ASVTables <- data.frame()
 
 for (k in 1:length(validFamilies)) {
   family <- validFamilies[[k]]
   familyMembers <- family@member_list
-
-  # Put each FamilyMember object in its own variable
   currentManure <- NULL
   currentEndo <- NULL
   currentEcto <- NULL
-
   for (i in 1:length(familyMembers)) {
     if (str_starts(familyMembers[[i]]@sample_designation, "Manure")) {
       currentManure <- familyMembers[[i]]
@@ -639,54 +585,18 @@ for (k in 1:length(validFamilies)) {
       currentEcto <- familyMembers[[i]]
     } 
   }
-  
-  # Put infants in a list to loop over:
   currentF1List <- list(currentManure, currentEndo, currentEcto)
-  
-  # Remove any NULL elements in the list (in case there is only 1 infant)
   currentF1List <- plyr::compact(currentF1List)
-
-  # Loop over the infant list and populate the "infant perspective" data frame:
-  #   allInfantASVTables - for each infant samples, holds the ASV, 
-  #     its percentage of the total reads in the infant, and whether it's shared with mother
-  #   (Later) to get the total percent shared and not shared for each infant (for plotting)
-  #     allInfantASVTables %>% group_by(sample, shared) %>% summarise(percent = sum(infants))
-  
   for (i in 1:length(currentF1List)) {
-    
     current_F1 <- currentF1List[[i]]
-    #currentInfantName <- current_infant@name
-    
-    # build infant's identifier (FamGroup.1 or FamGroup.2)
     F1Identifier <- paste(current_F1@sample_designation, current_F1@family_group, sep = "-")
     F1Table <- current_F1@ASV_counts
-    
-    # Replace column names with the samples' sample_designations for easier
-    #   plotting downstream:
-#    for (j in 1:ncol(F1Table)) {
-#      currentColName <- names(F1Table)[j]
-#      if (currentColName != "ASV") {
-#        setnames(F1Table,
-#                 old = currentColName,
-#                 new = familyMembers[[currentColName]]@sample_designation)
-#      }
-#    }
-                
-    # Prepare to add this table to a bigger list, but don't add until end!
     setnames(F1Table, old = F1Identifier, new = "read_count", skip_absent = TRUE)
-      
-    # For this infant, calculate percent of reads that are from ASVs that
-    #   are shared with mom, and not shared with mom (keep this table).
     F1Sum <- sum(F1Table$read_count)
-      
-    # Add the infantTable (the one with ASVs as rows) to larger data frame
     F1TablePercentages <- F1Table %>%
       mutate("F1_percent" = read_count/F1Sum)
-    
-    # Add infant sample name to table
     F1TablePercentages <- cbind(F1TablePercentages,
                                     "sample" = F1Identifier)
-    
     allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
   }
 }
@@ -789,53 +699,27 @@ GetSampleSum <- function(sampleName, physeqObject) {
 
 #-------------------------------------------------------#
 
-# Pull out sample data
 sampleData <- data.frame(sample_data(ps.Merged))
 sampleData$sampling.date <- unlist(sampleData$sampling.date)
 sampleData$pooltype <- unlist(sampleData$pooltype)
 
-# Pull out ASV count table
 abdTable <- as.matrix(otu_table(ps.Merged))
 if (!taxa_are_rows(abdTable)) {
   abdTable <- t(abdTable)
 }
 abdTable <- as.data.frame(abdTable)
 
-# Populate Classes
-
-# This list will hold the Family objects once completed
 familyClassList <- list()
 
-# Loop over the rows of the sample data data frame, building the objects by
-#   familiy group number.  But we only want to build it once, so when we run
-#   across the family group number again we don't want to re-build it.
-
 for (i in 1:51) {
-  # Get the current family group from the sample data table
   currentFamilyGroup <- sampleData[i, "sampling.date"]
-  
-  # Get all the current family names in familyClassList to check if 
-  #   currentFamilyGroup has already been built:
   familyNames <- names(familyClassList)
-  
-  # If the current family group has not been built, build it:
   if (!(currentFamilyGroup %in% familyNames)){
-    # Populate the family_group slot:
-    # Create a list of sample names for all the samples in the current family group
-    #   by subsetting the sample data df and extracting the sample names as a char
-    #   vector.  Then, add to the memberList list that will be looped over to
-    #   build each FamilyMember object for the current Family.
     members <- sampleData %>%
       filter(sampling.date == currentFamilyGroup) %>%
       dplyr::select(as.vector("sample_id"))
     memberList <- as.list(members$sample_id)
-    
-    # Create an empty list to hold FamilyMember objects which will be added to the 
-    #   Family object in the end.
     currentFamilyMembersList <- list()
-    
-    # Loop over the sample names in memberList and build a new FamilyMember object for
-    #   each sample:
     for (sample in memberList) {
       newMember <- new("FamilyMember",
                        family_group = currentFamilyGroup,
@@ -843,128 +727,58 @@ for (i in 1:51) {
                        sample_designation = sampleData$pooltype[sampleData$sample_id == sample],
                        sample_sum = GetSampleSum(sample, ps.Merged),
                        ASV_counts = CountASVs(sample, abdTable))
-    # Add this new FamilyMember object to currentFamilyMemberList:
     currentFamilyMembersList[[sample]] <- newMember
     }
-    
-    # Now that the member list is complete, get a total read sum to be put into the 
-    #  Family object (sum of each family member's total read count).
     totalSum <- 0
     for (member in currentFamilyMembersList) {
       sampleSum <- member@sample_sum
       totalSum <- sum(totalSum, sampleSum)
     }
-    
-    # We now have all the components needed to create new Family object.
     newFamily <- new("Family", 
                      family_group = currentFamilyGroup,
                      member_list = currentFamilyMembersList,
                      family_sum = totalSum)
-    # Add to list
     familyClassList[[currentFamilyGroup]] <- newFamily
   }
 }
 
-# Select "Valid" Families
-
-#Families including a mother and at least one infant.
-
 #----- Determine which family groups are valid -----# 
 
-# A valid Family must have at least one mother and one infant:
-# So a Family object should have a family_member list equal to length 3 or
-# equal to length 2 where one of the sample_designation values is "mother"
-
-# Create a list to hold the valid Family objects:
 validFamilies <- familyClassList
 
-# Infant Perspective 
-
 #----- Populate Table for Plotting Infants -----#
-
-# This is for the "infant perspective" plot.
-
-# Goal: generate a data frame holding all infants and all their ASVs (as rows). For each
-#   ASV in the given infant, count the number of reads and
-#   the percentage of the total reads in the infant that the ASV accounts for
-#   ("infant_percent" column.)
 
 allF1ASVTables <- data.frame()
 
 for (k in 1:length(validFamilies)) {
   family <- validFamilies[[k]]
   familyMembers <- family@member_list
-
-  # Put each FamilyMember object in its own variable
   currentManure <- NULL
-
   for (i in 1:length(familyMembers)) {
       currentManure <- c(currentManure,familyMembers[[i]])
     	}
-
-  # Put infants in a list to loop over:
   currentF1List <- list(currentManure)
-  
-  # Remove any NULL elements in the list (in case there is only 1 infant)
-  currentF1List <- plyr::compact(currentF1List)
-
-  # Loop over the infant list and populate the "infant perspective" data frame:
-  #   allInfantASVTables - for each infant samples, holds the ASV, 
-  #     its percentage of the total reads in the infant, and whether it's shared with mother
-  #   (Later) to get the total percent shared and not shared for each infant (for plotting)
-  #     allInfantASVTables %>% group_by(sample, shared) %>% summarise(percent = sum(infants))
-  
+  currentF1List <- plyr::compact(currentF1List) 
   for (i in 1:length(currentF1List[[1]])) {
-  
     current_F1 <- currentF1List[[1]][[i]]
-    #currentInfantName <- current_infant@name
-    
-    # build infant's identifier (FamGroup.1 or FamGroup.2)
     F1Designation <- current_F1@sample_designation
     F1Identifier <- paste(family@family_group, F1Designation, sep = "/")
-	
 	Fly_ASV_counts = CountASVs("Fly-Fly", abdTable)
-
-    # merge current infant's ASV counts with mother's
     F1Table <- merge(current_F1@ASV_counts,
                          Fly_ASV_counts,
                          by = "ASV", all = TRUE)
-    
-    # Replace column names with the samples' sample_designations for easier
-    #   plotting downstream:
-    
       currentColName <- names(F1Table)[2]
       setnames(F1Table, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
-    
-    # Collapse table to figure out what is shared from infant's perspective -
-    #   remove any ASVs that have a count of NA in the current infant.
     F1Table <- F1Table[!(is.na(F1Table[[F1Designation]])), ]
-    
-    # Add a column to indicate if each ASV (row) in the collapsed table is 
-    #   shared with mom or not. If the ASV has a value of NA in mother column
-    #   then it cannot be shared between current infant and mom.
-    
     F1Table$shared <- ifelse(!(is.na(F1Table$"Fly-Fly")), yes = TRUE, no = FALSE)
     F1Table$sample <- F1Identifier
-
-    # Prepare to add this table to a bigger list, but don't add until end!
     setnames(F1Table, old = F1Designation, new = "read_count")
-      
-    # For this infant, calculate percent of reads that are from ASVs that
-    #   are shared with mom, and not shared with mom (keep this table).
     F1Sum <- sum(F1Table$read_count)
     F1SharedSum <- sum(F1Table$read_count[F1Table$shared == TRUE])
     F1NotSharedSum <- sum(F1Table$read_count[F1Table$shared == FALSE])
-      
-    # Add the infantTable (the one with ASVs as rows) to larger data frame
     F1TablePercentages <- F1Table %>%
       mutate("F1_percent" = read_count/F1Sum) %>%
       dplyr::select(-c("Fly-Fly"))
-    
-    # Add infant sample name to table
-    #infantTablePercentages <- cbind(infantTablePercentages,
-                                    #"infant_sample" = currentInfantName)
-    
     allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
   }
 }

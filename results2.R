@@ -645,6 +645,179 @@ F1PerspectivePlot <- ggplot(allF1ASVTables,
 scale_fill_manual(name = "ASV", values = myColors)
 F1PerspectivePlot
 
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling locations (Fig. S13) ####
+
+sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$trap, sep = "-")
+ps.arlington <- subset_samples(ps, location=="Arlington")
+ps.Merged <- merge_samples(ps.arlington,"merge_factor")
+row_names <- row.names(sample_data(ps.Merged))
+sample_data(ps.Merged)$sample_id <- row_names
+lst <- strsplit(row_names,'-')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+v3 <- lapply(lst, `[`, 3)
+v4 <- paste(v2, v3, sep = "-")
+sample_data(ps.Merged)$sample.type <- v1
+sample_data(ps.Merged)$trap <- v4
+                        
+#-------------------------------------------------------#
+
+setClass("Family",
+         representation = representation(family_group = "character",
+                                         member_list = "list",
+                                         family_sum = "numeric"),
+         prototype = prototype(family_group = NA_character_,
+                               member_list = list(),
+                               family_sum = NA_real_))
+
+setClass("FamilyMember", 
+         representation = representation(family_group = "character",
+                                         name = "character",
+                                         sample_designation = "character",
+                                         sample_sum = "numeric",
+                                         ASV_counts = "data.frame"),
+         prototype = prototype(family_group = NA_character_,
+                               name = NA_character_,
+                               sample_designation = NA_character_,
+                               sample_sum = NA_real_))
+
+#-------------------------------------------------------#
+
+CountASVs <- function(sampleName, abundanceTable) {
+  sampleAbundance <- abundanceTable %>%
+    dplyr::select(sampleName) %>%
+    rownames_to_column(var = "ASV")
+  sampleAbundanceDF <- filter(sampleAbundance, sampleAbundance[, sampleName] > 0)
+  return(sampleAbundanceDF)
+}
+
+#-------------------------------------------------------#
+
+GetSampleSum <- function(sampleName, physeqObject) {
+  named_sum <- sample_sums(physeqObject)[sampleName]
+  numeric_sum <- unname(named_sum)
+}
+
+#-------------------------------------------------------#
+
+sampleData <- data.frame(sample_data(ps.Merged))
+sampleData$sample.type <- unlist(sampleData$sample.type)
+sampleData$trap <- unlist(sampleData$trap)
+
+abdTable <- as.matrix(otu_table(ps.Merged))
+if (!taxa_are_rows(abdTable)) {
+  abdTable <- t(abdTable)
+}
+abdTable <- as.data.frame(abdTable)
+
+familyClassList <- list()
+
+for (i in 1:nrow(sampleData)) {
+  currentFamilyGroup <- sampleData[i, "trap"]
+  familyNames <- names(familyClassList)
+  if (!(currentFamilyGroup %in% familyNames)){
+    members <- sampleData %>%
+      filter(trap == currentFamilyGroup) %>%
+      dplyr::select(as.vector("sample_id"))
+    memberList <- as.list(members$sample_id)
+    currentFamilyMembersList <- list()
+    for (sample in memberList) {
+      newMember <- new("FamilyMember",
+                       family_group = currentFamilyGroup,
+                       name = sample, 
+                       sample_designation = sampleData$sample.type[sampleData$sample_id == sample],
+                       sample_sum = GetSampleSum(sample, ps.Merged),
+                       ASV_counts = CountASVs(sample, abdTable))
+    currentFamilyMembersList[[sample]] <- newMember
+    }
+    totalSum <- 0
+    for (member in currentFamilyMembersList) {
+      sampleSum <- member@sample_sum
+      totalSum <- sum(totalSum, sampleSum)
+    }
+    newFamily <- new("Family", 
+                     family_group = currentFamilyGroup,
+                     member_list = currentFamilyMembersList,
+                     family_sum = totalSum)
+    familyClassList[[currentFamilyGroup]] <- newFamily
+  }
+}
+
+#----- Populate Table for Plotting Infants -----#
+
+allF1ASVTables <- data.frame()
+
+for (k in 1:length(familyClassList)) {
+  family <- familyClassList[[k]]
+  familyMembers <- family@member_list
+  currentManure <- NULL
+  currentEndo <- NULL
+  currentEcto <- NULL
+  for (i in 1:length(familyMembers)) {
+    if (str_starts(familyMembers[[i]]@sample_designation, "Manure")) {
+      currentManure <- familyMembers[[i]]
+    } else if (str_starts(familyMembers[[i]]@sample_designation, "Endo")) {
+      currentEndo <- familyMembers[[i]]
+    } else if (str_starts(familyMembers[[i]]@sample_designation, "Ecto")) {
+      currentEcto <- familyMembers[[i]]
+    } 
+  }
+  currentF1List <- list(currentManure, currentEndo, currentEcto)
+  currentF1List<-currentF1List[!sapply(currentF1List,is.null)]
+  currentF1List <- plyr::compact(currentF1List)
+  for (i in 1:length(currentF1List)) {
+    current_F1 <- currentF1List[[i]]
+    F1Identifier <- paste(current_F1@sample_designation, current_F1@family_group, sep = "-")
+    F1Table <- current_F1@ASV_counts
+    setnames(F1Table, old = F1Identifier, new = "read_count", skip_absent = TRUE)
+    F1Sum <- sum(F1Table$read_count)
+    F1TablePercentages <- F1Table %>%
+      mutate("F1_percent" = read_count/F1Sum)
+    F1TablePercentages <- cbind(F1TablePercentages,
+                                    "sample" = F1Identifier)
+    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
+  }
+}
+
+allF1ASVTables <- allF1ASVTables[allF1ASVTables$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
+
+allF1ASVTables$sample <- factor(allF1ASVTables$sample,levels = c("Ecto-B1-East", "Ecto-B1-West", "Ecto-B2-East", "Ecto-B2-West", 
+								 "Endo-B1-East", "Endo-B1-West", "Endo-B2-East", "Endo-B2-West",
+								 "Manure-Arl-M1", "Manure-Arl-M2", "Manure-Arl-M3", "Manure-Arl-M4", "Manure-Arl-M5",
+								 "Manure-Arl-sickpen"))
+
+ASVTax <- as.data.frame(tax_table(ps.Merged))
+ASVIDs <- row.names(ASVTax)
+ASVTax$ASV <- ASVIDs
+ASVTax <- ASVTax[ASVTax$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
+                          
+allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
+
+ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
+
+myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801",
+        "#a63603", "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
+names(myColors) <- ASVNames
+
+F1PerspectivePlot <- ggplot(allF1ASVTables,
+                                aes(x = sample, y = F1_percent, 
+                                    fill = ASV)) +
+  geom_bar(stat = "identity") +
+scale_fill_manual(name = "ASV", values = myColors)
+F1PerspectivePlot
+				     
 #### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not) (Fig. 5C) ####
 
 ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
@@ -1346,7 +1519,177 @@ F1PerspectivePlot <- ggplot(allF1ASVTables,
 scale_fill_manual(name = "ASV", values = myColors)
 
 F1PerspectivePlot
-			  
+
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling locations (Fig. S14) ####
+				     
+sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$trap, sep = "-")
+ps.dcc <- subset_samples(ps, location=="DCC" & sample.type=="Manure")
+ps.Merged <- merge_samples(ps.dcc,"merge_factor")
+row_names <- row.names(sample_data(ps.Merged))
+sample_data(ps.Merged)$sample_id <- row_names
+lst <- strsplit(row_names,'-')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+v3 <- lapply(lst, `[`, 3)
+v4 <- paste(v2, v3, sep = "-")
+sample_data(ps.Merged)$sample.type <- v1
+sample_data(ps.Merged)$trap <- v4
+                        
+#-------------------------------------------------------#
+
+setClass("Family",
+         representation = representation(family_group = "character",
+                                         member_list = "list",
+                                         family_sum = "numeric"),
+         prototype = prototype(family_group = NA_character_,
+                               member_list = list(),
+                               family_sum = NA_real_))
+
+setClass("FamilyMember", 
+         representation = representation(family_group = "character",
+                                         name = "character",
+                                         sample_designation = "character",
+                                         sample_sum = "numeric",
+                                         ASV_counts = "data.frame"),
+         prototype = prototype(family_group = NA_character_,
+                               name = NA_character_,
+                               sample_designation = NA_character_,
+                               sample_sum = NA_real_))
+
+#-------------------------------------------------------#
+
+CountASVs <- function(sampleName, abundanceTable) {
+  sampleAbundance <- abundanceTable %>%
+    dplyr::select(sampleName) %>%
+    rownames_to_column(var = "ASV")
+  sampleAbundanceDF <- filter(sampleAbundance, sampleAbundance[, sampleName] > 0)
+  return(sampleAbundanceDF)
+}
+
+#-------------------------------------------------------#
+
+GetSampleSum <- function(sampleName, physeqObject) {
+  named_sum <- sample_sums(physeqObject)[sampleName]
+  numeric_sum <- unname(named_sum)
+}
+
+#-------------------------------------------------------#
+
+sampleData <- data.frame(sample_data(ps.Merged))
+sampleData$sample.type <- unlist(sampleData$sample.type)
+sampleData$trap <- unlist(sampleData$trap)
+
+abdTable <- as.matrix(otu_table(ps.Merged))
+if (!taxa_are_rows(abdTable)) {
+  abdTable <- t(abdTable)
+}
+abdTable <- as.data.frame(abdTable)
+
+familyClassList <- list()
+
+for (i in 1:nrow(sampleData)) {
+  currentFamilyGroup <- sampleData[i, "trap"]
+  familyNames <- names(familyClassList)
+  if (!(currentFamilyGroup %in% familyNames)){
+    members <- sampleData %>%
+      filter(trap == currentFamilyGroup) %>%
+      dplyr::select(as.vector("sample_id"))
+    memberList <- as.list(members$sample_id)
+    currentFamilyMembersList <- list()
+    for (sample in memberList) {
+      newMember <- new("FamilyMember",
+                       family_group = currentFamilyGroup,
+                       name = sample, 
+                       sample_designation = sampleData$sample.type[sampleData$sample_id == sample],
+                       sample_sum = GetSampleSum(sample, ps.Merged),
+                       ASV_counts = CountASVs(sample, abdTable))
+    currentFamilyMembersList[[sample]] <- newMember
+    }
+    totalSum <- 0
+    for (member in currentFamilyMembersList) {
+      sampleSum <- member@sample_sum
+      totalSum <- sum(totalSum, sampleSum)
+    }
+    newFamily <- new("Family", 
+                     family_group = currentFamilyGroup,
+                     member_list = currentFamilyMembersList,
+                     family_sum = totalSum)
+    familyClassList[[currentFamilyGroup]] <- newFamily
+  }
+}
+
+#----- Populate Table for Plotting Infants -----#
+
+allF1ASVTables <- data.frame()
+
+for (k in 1:length(familyClassList)) {
+  family <- familyClassList[[k]]
+  familyMembers <- family@member_list
+  currentManure <- NULL
+  currentEndo <- NULL
+  currentEcto <- NULL
+  for (i in 1:length(familyMembers)) {
+    if (str_starts(familyMembers[[i]]@sample_designation, "Manure")) {
+      currentManure <- familyMembers[[i]]
+    } else if (str_starts(familyMembers[[i]]@sample_designation, "Endo")) {
+      currentEndo <- familyMembers[[i]]
+    } else if (str_starts(familyMembers[[i]]@sample_designation, "Ecto")) {
+      currentEcto <- familyMembers[[i]]
+    } 
+  }
+  currentF1List <- list(currentManure, currentEndo, currentEcto)
+  currentF1List<-currentF1List[!sapply(currentF1List,is.null)]
+  currentF1List <- plyr::compact(currentF1List)
+  for (i in 1:length(currentF1List)) {
+    current_F1 <- currentF1List[[i]]
+    F1Identifier <- paste(current_F1@sample_designation, current_F1@family_group, sep = "-")
+    F1Table <- current_F1@ASV_counts
+    setnames(F1Table, old = F1Identifier, new = "read_count", skip_absent = TRUE)
+    F1Sum <- sum(F1Table$read_count)
+    F1TablePercentages <- F1Table %>%
+      mutate("F1_percent" = read_count/F1Sum)
+    F1TablePercentages <- cbind(F1TablePercentages,
+                                    "sample" = F1Identifier)
+    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
+  }
+}
+
+allF1ASVTables <- allF1ASVTables[allF1ASVTables$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
+
+allF1ASVTables$sample <- factor(allF1ASVTables$sample,levels = c("Manure-DCC-Outdoor", "Manure-DCC-Q1", "Manure-DCC-Q2", "Manure-DCC-Q3", "Manure-DCC-Q4"))
+
+ASVTax <- as.data.frame(tax_table(ps.Merged))
+ASVIDs <- row.names(ASVTax)
+ASVTax$ASV <- ASVIDs
+ASVTax <- ASVTax[ASVTax$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
+                          
+allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
+
+ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
+
+myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801",
+        "#a63603", "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
+names(myColors) <- ASVNames
+
+F1PerspectivePlot <- ggplot(allF1ASVTables,
+                                aes(x = sample, y = F1_percent, 
+                                    fill = ASV)) +
+  geom_bar(stat = "identity") +
+scale_fill_manual(name = "ASV", values = myColors)
+F1PerspectivePlot
+				     
 #### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not) (Fig. 5C) ####
 
 sample_data(ps)$merge_factor <- c("Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","ArlM1-7.9.21","ArlM10-7.16.21","ArlM11-7.23.21","ArlM12-7.23.21","ArlM13-7.23.21","ArlM14-7.23.21","ArlM15-7.23.21","ArlM16-7.30.21","ArlM17-7.30.21","ArlM18-7.30.21","ArlM19-7.30.21","ArlM2-7.9.21","ArlM20-7.30.21","ArlM21-7.30.21","ArlM22-8.6.21","ArlM23-8.6.21","ArlM24-8.6.21","ArlM25-8.6.21","ArlM26-8.6.21","ArlM27-8.6.21","ArlM28-8.13.21","ArlM29-8.13.21","ArlM3-7.9.21","ArlM30-8.13.21","ArlM31-8.13.21","ArlM32-8.13.21","ArlM33-8.13.21","ArlM34-8.20.21","ArlM35-8.20.21","ArlM36-8.20.21","ArlM37-8.20.21","ArlM38-8.20.21","ArlM39-8.20.21","ArlM4-7.9.21","ArlM40-8.27.21","ArlM41-8.27.21","ArlM42-8.27.21","ArlM43-8.27.21","ArlM44-8.27.21","ArlM45-8.27.21","ArlM46-9.10.21","ArlM47-9.10.21","ArlM48-9.10.21","ArlM49-9.10.21","ArlM5-7.9.21","ArlM50-9.10.21","ArlM51-9.10.21","ArlM6-7.16.21","ArlM7-7.16.21","ArlM8-7.16.21","ArlM9-7.16.21","DCCM100-9.15.21","DCCM101-9.15.21","DCCM102-7.8.21","DCCM103-7.8.21","DCCM104-7.8.21","DCCM105-7.8.21","DCCM106-7.8.21","DCCM52-7.15.21","DCCM53-7.15.21","DCCM54-7.15.21","DCCM55-7.15.21","DCCM56-7.15.21","DCCM57-7.22.21","DCCM58-7.22.21","DCCM59-7.22.21","DCCM60-7.22.21","DCCM61-7.22.21","DCCM62-7.29.21","DCCM63-7.29.21","DCCM64-7.29.21","DCCM65-7.29.21","DCCM66-7.29.21","DCCM67-8.5.21","DCCM68-8.5.21","DCCM69-8.5.21","DCCM70-8.5.21","DCCM71-8.5.21","DCCM72-8.12.21","DCCM73-8.12.21","DCCM74-8.12.21","DCCM75-8.12.21","DCCM76-8.12.21","DCCM77-8.19.21","DCCM78-8.19.21","DCCM79-8.19.21","DCCM80-8.19.21","DCCM81-8.19.21","DCCM82-8.26.21","DCCM83-8.26.21","DCCM84-8.26.21","DCCM85-8.26.21","DCCM86-8.26.21","DCCM87-9.2.21","DCCM88-9.2.21","DCCM89-9.2.21","DCCM90-9.2.21","DCCM91-9.2.21","DCCM92-9.9.21","DCCM93-9.9.21","DCCM94-9.9.21","DCCM95-9.9.21","DCCM96-9.9.21","DCCM97-9.15.21","DCCM98-9.15.21","DCCM99-9.15.21","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly")

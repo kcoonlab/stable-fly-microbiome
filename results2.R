@@ -188,7 +188,7 @@ validFamilies <- familyClassList
 # ASV in the given fly sample, count the number of reads and
 # the percentage of the total reads in the sample that the ASV accounts for
 
-allFlyASVTables <- data.frame()
+allF1ASVTables <- data.frame()
 
 for (k in 1:length(validFamilies)) {
   family <- validFamilies[[k]]
@@ -202,93 +202,93 @@ for (k in 1:length(validFamilies)) {
     	}
 
   # Put fly samples in a list to loop over:
-  currentFlyList <- list(currentFly)
+  currentF1List <- list(currentFly)
   
   # Remove any NULL elements in the list (in case there is only 1 fly sample)
-  currentFlyList <- plyr::compact(currentFlyList)
+  currentF1List <- plyr::compact(currentF1List)
 
   # Loop over the fly sample list and populate the data frame:
   #   allFlyASVTables - for each fly sample, holds the ASV, 
   #     its percentage of the total reads in the sample, and whether it's shared with manure collected from the same facility
   
-  for (i in 1:length(currentFlyList[[1]])) {
+  for (i in 1:length(currentF1List[[1]])) {
   
-    current_Fly <- currentFlyList[[1]][[i]]
+    current_F1 <- currentF1List[[1]][[i]]
     #currentFlyName <- current_fly@name
     
     # build fly sample's identifier (FamGroup.1 or FamGroup.2)
-    FlyDesignation <- current_Fly@sample_designation
-    FlyIdentifier <- paste(family@family_group, FlyDesignation, sep = "/")
+    F1Designation <- current_F1@sample_designation
+    F1Identifier <- paste(family@family_group, F1Designation, sep = "/")
 	
 	Manure_ASV_counts = CountASVs("Manure-Manure", abdTable)
 
     # merge current fly sample's ASV counts with manure's
-    FlyTable <- merge(current_Fly@ASV_counts,
+    F1Table <- merge(current_F1@ASV_counts,
                          Manure_ASV_counts,
                          by = "ASV", all = TRUE)
     
     # Replace column names with the samples' sample_designations for easier
     #   plotting downstream:
     
-      currentColName <- names(FlyTable)[2]
-      setnames(FlyTable, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
+      currentColName <- names(F1Table)[2]
+      setnames(F1Table, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
     
     # Collapse table to figure out what is shared from fly sample's perspective -
     #   remove any ASVs that have a count of NA in the current sample
-    FlyTable <- FlyTable[!(is.na(FlyTable[[FlyDesignation]])), ]
+    F1Table <- F1Table[!(is.na(F1Table[[F1Designation]])), ]
     
     # Add a column to indicate if each ASV (row) in the collapsed table is 
     #   shared with manure or not. If the ASV has a value of NA in manure column
     #   then it cannot be shared between current fly sample and manure
     
-    FlyTable$shared <- ifelse(!(is.na(FlyTable$"Manure-Manure")), yes = TRUE, no = FALSE)
-    FlyTable$sample <- FlyIdentifier
+    F1Table$shared <- ifelse(!(is.na(F1Table$"Manure-Manure")), yes = TRUE, no = FALSE)
+    F1Table$sample <- F1Identifier
 
     # Prepare to add this table to a bigger list, but don't add until end!
-    setnames(FlyTable, old = FlyDesignation, new = "read_count")
+    setnames(F1Table, old = F1Designation, new = "read_count")
       
     # For this fly sample, calculate percent of reads that are from ASVs that
     #   are shared with mom, and not shared with mom (keep this table).
-    FlySum <- sum(FlyTable$read_count)
-    FlySharedSum <- sum(FlyTable$read_count[FlyTable$shared == TRUE])
-    FlyNotSharedSum <- sum(FlyTable$read_count[FlyTable$shared == FALSE])
+    F1Sum <- sum(F1Table$read_count)
+    F1SharedSum <- sum(F1Table$read_count[F1Table$shared == TRUE])
+    F1NotSharedSum <- sum(F1Table$read_count[F1Table$shared == FALSE])
       
     # Add the flyTable (the one with ASVs as rows) to larger data frame
-    FlyTablePercentages <- FlyTable %>%
-      mutate("Fly_percent" = read_count/FlySum) %>%
+    F1TablePercentages <- F1Table %>%
+      mutate("F1_percent" = read_count/F1Sum) %>%
       dplyr::select(-c("Manure-Manure"))
         
-    allFlyASVTables <- rbind(allFlyASVTables, FlyTablePercentages)
+    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
   }
 }
 
 # Group allFlyASVTables by sample and shared (T/F) then count
-FlyPerspectiveRichness <- allFlyASVTables
-array <- unlist(strsplit(FlyPerspectiveRichness$sample, "[/]"))
+F1PerspectiveRichness <- allF1ASVTables
+array <- unlist(strsplit(F1PerspectiveRichness$sample, "[/]"))
 date <- array[c(TRUE, FALSE)]
-FlyPerspectiveRichness$date <- date
+F1PerspectiveRichness$date <- date
 
-FlyPerspectiveRichness.1 <- FlyPerspectiveRichness %>%
+F1PerspectiveRichness.1 <- F1PerspectiveRichness %>%
   group_by(date, sample, shared) %>%
   summarise(number_of_ASVs = n())
   
-lst <- strsplit(FlyPerspectiveRichness.1$sample,'/')
+lst <- strsplit(F1PerspectiveRichness.1$sample,'/')
 v2 <- lapply(lst, `[`, 2)
 v2 = substr(v2,1,4)
-FlyPerspectiveRichness.1$sample.type <- v2
+F1PerspectiveRichness.1$sample.type <- v2
 
-FlySharedOTUs <- FlyPerspectiveRichness.1
-FlySharedOTUs <- filter(FlySharedOTUs, shared == TRUE)
-FlySharedOTUs <- subset(FlySharedOTUs, select = c(date,sample,number_of_ASVs, sample.type))
-FlySharedOTUs$sample.type <- factor(FlySharedOTUs$sample.type, levels=c("Endo", "Ecto"))
-FlySharedOTUs$trap <- c("B2-West","B1-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B1-East","B1-West","B2-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B2-East","B1-East","B1-East","B1-East","B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East")
-FlySharedOTUs$trap <- factor(FlySharedOTUs$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
+F1SharedOTUs <- F1PerspectiveRichness.1
+F1SharedOTUs <- filter(F1SharedOTUs, shared == TRUE)
+F1SharedOTUs <- subset(F1SharedOTUs, select = c(date,sample,number_of_ASVs, sample.type))
+F1SharedOTUs$sample.type <- factor(F1SharedOTUs$sample.type, levels=c("Endo", "Ecto"))
+F1SharedOTUs$trap <- c("B2-West","B1-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B1-East","B1-West","B2-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B2-East","B1-East","B1-East","B1-East","B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East")
+F1SharedOTUs$trap <- factor(F1SharedOTUs$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
 
-kruskal.test(number_of_ASVs~as.factor(sample.type),data=FlySharedOTUs) #Significant (p < 0.0001)
+kruskal.test(number_of_ASVs~as.factor(sample.type),data=F1SharedOTUs) #Significant (p < 0.0001)
 
-means <- aggregate(number_of_ASVs ~ sample.type, data = FlySharedOTUs, 
+means <- aggregate(number_of_ASVs ~ sample.type, data = F1SharedOTUs, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ sample.type, data = FlySharedOTUs, 
+cis <- aggregate(number_of_ASVs ~ sample.type, data = F1SharedOTUs, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 
 summary <- merge(means,cis,by="sample.type")
@@ -300,30 +300,30 @@ ggplot(summary, aes(x = sample.type, y = number_of_ASVs.x)) + #Fig. 5A
 
 #### Goal: Calculate relative abundance of fly-associated taxa that are shared with manure collected from the same facility (or not) (Fig. 5B) ####
 
-FlyPerspectiveRA <- allFlyASVTables
-array <- unlist(strsplit(FlyPerspectiveRA$sample, "[/]"))
+F1PerspectiveRA <- allF1ASVTables
+array <- unlist(strsplit(F1PerspectiveRA$sample, "[/]"))
 date <- array[c(TRUE, FALSE)]
-FlyPerspectiveRA$date <- date
+F1PerspectiveRA$date <- date
 
-FlyPerspectiveRA.1 <- FlyPerspectiveRA %>%
+F1PerspectiveRA.1 <- F1PerspectiveRA %>%
   group_by(date, sample, shared) %>%
   summarise(tot_shared_reads = sum(read_count))
   
-FlyPerspectiveRA.2 <- FlyPerspectiveRA.1 %>%
+F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
   group_by(sample) %>%
   summarise(tot_reads = sum(tot_shared_reads))
 
-FlyPerspectiveRA.3 <- merge(x = FlyPerspectiveRA.1,y = FlyPerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
-FlyPerspectiveRA.3$percent <- FlyPerspectiveRA.3$tot_shared_reads/FlyPerspectiveRA.3$tot_reads
-FlyPerspectiveRA.3$source <- ifelse(str_detect(FlyPerspectiveRA.3$sample,"Endo"), "Endo", "Ecto")
-FlyPerspectiveRA.3 <- FlyPerspectiveRA.3[FlyPerspectiveRA.3$shared == "TRUE",]		 
+F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
+F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
+F1PerspectiveRA.3$source <- ifelse(str_detect(F1PerspectiveRA.3$sample,"Endo"), "Endo", "Ecto")
+F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]		 
 		
-kruskal.test(percent~as.factor(source),data=FlyPerspectiveRA.3) #P = 0.04602
-kruskal.test(percent~as.factor(date),data=FlyPerspectiveRA.3) #P = 0.01786
-pairwise.wilcox.test(FlyPerspectiveRA.3$percent, as.factor(FlyPerspectiveRA.3$date),
+kruskal.test(percent~as.factor(source),data=F1PerspectiveRA.3) #P = 0.04602
+kruskal.test(percent~as.factor(date),data=F1PerspectiveRA.3) #P = 0.01786
+pairwise.wilcox.test(F1PerspectiveRA.3$percent, as.factor(F1PerspectiveRA.3$date),
                  p.adjust.method = "BH", exact = FALSE) #Only significant: 7.9.2021 vs. 8.13.2021 (P = 0.030)
 		 
-data_summary <- aggregate(percent ~ as.factor(source), FlyPerspectiveRA.3,
+data_summary <- aggregate(percent ~ as.factor(source), F1PerspectiveRA.3,
                           function(x) c(mean = mean(x),
                                         se = sd(x) / sqrt(length(x))))
 data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
@@ -336,15 +336,15 @@ ggplot(data_summary) +
 		 	 
 #### Goal: Calculate the number of shared ASVs between internal/external fly samples and manure samples collected from the same facility across different sampling dates (Fig. S7) ####
 			  
-FlySharedOTUs$date <- factor(FlySharedOTUs$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
-FlySharedOTUs.Endo <- FlySharedOTUs[FlySharedOTUs$sample.type=="Endo",]
-FlySharedOTUs.Ecto <- FlySharedOTUs[FlySharedOTUs$sample.type=="Ecto",]
-kruskal.test(number_of_ASVs~as.factor(date),data=FlySharedOTUs.Endo) #NS (P = 0.5275)
-kruskal.test(number_of_ASVs~as.factor(date),data=FlySharedOTUs.Ecto) #NS (P = 0.0781)
+F1SharedOTUs$date <- factor(F1SharedOTUs$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
+F1SharedOTUs.Endo <- F1SharedOTUs[F1SharedOTUs$sample.type=="Endo",]
+F1SharedOTUs.Ecto <- F1SharedOTUs[F1SharedOTUs$sample.type=="Ecto",]
+kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Endo) #NS (P = 0.5275)
+kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Ecto) #NS (P = 0.0781)
 			  
-means <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Ecto, 
+means <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Ecto, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Ecto, 
+cis <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Ecto, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="date")
 summary$date <- factor(summary$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
@@ -354,9 +354,9 @@ ggplot(summary, aes(x = date, y = number_of_ASVs.x)) +
 
 #### Goal: Calculate the number of shared ASVs between internal/external fly samples and manure samples collected from the same facility across different sampling locations (Fig. S8) ####
 
-means <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Endo, 
+means <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Endo, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Endo, 
+cis <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Endo, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="trap")
 summary$date <- factor(summary$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
@@ -364,9 +364,9 @@ ggplot(summary, aes(x = trap, y = number_of_ASVs.x)) +
     geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-means <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Ecto, 
+means <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Ecto, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Ecto, 
+cis <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Ecto, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="trap")
 summary$date <- factor(summary$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
@@ -383,7 +383,7 @@ data_summary <- aggregate(percent_shared ~ as.factor(date), data.endo,
 data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
 data_summary$ci <- 1.96*data_summary$se
 data_summary$group <- factor(data_summary$group, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
-ggplot(data_summary) + #Fig. S9
+ggplot(data_summary) +
     geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
     geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
@@ -395,7 +395,7 @@ data_summary <- aggregate(percent_shared ~ as.factor(date), data.ecto,
 data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
 data_summary$ci <- 1.96*data_summary$se
 data_summary$group <- factor(data_summary$group, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
-ggplot(data_summary) + #Fig. S9
+ggplot(data_summary) +
     geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
     geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)

@@ -463,13 +463,7 @@ ggplot(otus, aes(fill=ASV, y=Ecto, x="")) + #Fig. 7
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 
-
-
-
-
-
-				     
-#### Fig. S11 ####
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling dates (Fig. 11) ####
 
 sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$sampling.date, sep = "-")
 ps.arlington <- subset_samples(ps, location=="Arlington")
@@ -737,11 +731,9 @@ F1PerspectivePlot <- ggplot(allF1ASVTables,
   geom_bar(stat = "identity") +
 scale_fill_manual(name = "ASV", values = myColors)
 
-F1PerspectivePlot #Fig. S11
+F1PerspectivePlot
 
-
-
-#### Arlington plot in Fig. ####
+#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not) (Fig. 5C) ####
 
 ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
 sample_data(ps)$merge_factor <- c("Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","ArlM1-7.9.21","ArlM10-7.16.21","ArlM11-7.23.21","ArlM12-7.23.21","ArlM13-7.23.21","ArlM14-7.23.21","ArlM15-7.23.21","ArlM16-7.30.21","ArlM17-7.30.21","ArlM18-7.30.21","ArlM19-7.30.21","ArlM2-7.9.21","ArlM20-7.30.21","ArlM21-7.30.21","ArlM22-8.6.21","ArlM23-8.6.21","ArlM24-8.6.21","ArlM25-8.6.21","ArlM26-8.6.21","ArlM27-8.6.21","ArlM28-8.13.21","ArlM29-8.13.21","ArlM3-7.9.21","ArlM30-8.13.21","ArlM31-8.13.21","ArlM32-8.13.21","ArlM33-8.13.21","ArlM34-8.20.21","ArlM35-8.20.21","ArlM36-8.20.21","ArlM37-8.20.21","ArlM38-8.20.21","ArlM39-8.20.21","ArlM4-7.9.21","ArlM40-8.27.21","ArlM41-8.27.21","ArlM42-8.27.21","ArlM43-8.27.21","ArlM44-8.27.21","ArlM45-8.27.21","ArlM46-9.10.21","ArlM47-9.10.21","ArlM48-9.10.21","ArlM49-9.10.21","ArlM5-7.9.21","ArlM50-9.10.21","ArlM51-9.10.21","ArlM6-7.16.21","ArlM7-7.16.21","ArlM8-7.16.21","ArlM9-7.16.21","DCCM100-9.15.21","DCCM101-9.15.21","DCCM102-7.8.21","DCCM103-7.8.21","DCCM104-7.8.21","DCCM105-7.8.21","DCCM106-7.8.21","DCCM52-7.15.21","DCCM53-7.15.21","DCCM54-7.15.21","DCCM55-7.15.21","DCCM56-7.15.21","DCCM57-7.22.21","DCCM58-7.22.21","DCCM59-7.22.21","DCCM60-7.22.21","DCCM61-7.22.21","DCCM62-7.29.21","DCCM63-7.29.21","DCCM64-7.29.21","DCCM65-7.29.21","DCCM66-7.29.21","DCCM67-8.5.21","DCCM68-8.5.21","DCCM69-8.5.21","DCCM70-8.5.21","DCCM71-8.5.21","DCCM72-8.12.21","DCCM73-8.12.21","DCCM74-8.12.21","DCCM75-8.12.21","DCCM76-8.12.21","DCCM77-8.19.21","DCCM78-8.19.21","DCCM79-8.19.21","DCCM80-8.19.21","DCCM81-8.19.21","DCCM82-8.26.21","DCCM83-8.26.21","DCCM84-8.26.21","DCCM85-8.26.21","DCCM86-8.26.21","DCCM87-9.2.21","DCCM88-9.2.21","DCCM89-9.2.21","DCCM90-9.2.21","DCCM91-9.2.21","DCCM92-9.9.21","DCCM93-9.9.21","DCCM94-9.9.21","DCCM95-9.9.21","DCCM96-9.9.21","DCCM97-9.15.21","DCCM98-9.15.21","DCCM99-9.15.21","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly")
@@ -989,33 +981,27 @@ F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
   summarise(tot_reads = sum(tot_shared_reads))
 
 F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
-
 F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
 
-write.csv(F1PerspectiveRA.3, 
-            file = "FlyPerspectiveRAManure.csv",
-            quote = FALSE, row.names = FALSE)
+kruskal.test(percent~as.factor(date),data=F1PerspectiveRA.3) #NS (p = 1)
 
-data=read.csv("FlyPerspectiveRAManureFormatted.csv")
-kruskal.test(percent_shared~as.factor(date),data=data) #NS (p = 0.9071)
+mean <- mean(F1PerspectiveRA.3$percent)
+ci <- 1.96*(sd(F1PerspectiveRA.3$percent) / sqrt(length(F1PerspectiveRA.3$percent)))        
 
-mean <- mean(data$percent_shared)
-ci <- 1.96*(sd(data$percent_shared) / sqrt(length(data$percent_shared)))        
-
-#Fig. 5C
-ggplot(data=NULL) + #Fig. 5C
+ggplot(data=NULL) +
     geom_bar( aes(x="", y=mean), stat="identity", fill="skyblue", alpha=0.7) +
     geom_errorbar( aes(x="", ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 
-means <- aggregate(percent_shared ~ date, data = data, 
+#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not), across different sampling dates (Fig. S10) ####
+				     
+means <- aggregate(percent ~ date, data = F1PerspectiveRA.3, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(percent_shared ~ date, data = data, 
+cis <- aggregate(percent ~ date, data = F1PerspectiveRA.3, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="date")
 summary$date <- factor(summary$date, levels=c("7.9.21","7.16.21","7.23.21","7.30.21","8.6.21","8.13.21","8.20.21","8.27.21","9.10.21"))
 
-#Fig. S10
-ggplot(summary, aes(x = date, y = percent_shared.x)) + #Fig. S10
-    geom_errorbar(aes(ymin=percent_shared.x-percent_shared.y, ymax=percent_shared.x+percent_shared.y), width=.1) +
+ggplot(summary, aes(x = date, y = percent.x)) +
+    geom_errorbar(aes(ymin=percent.x-percent.y, ymax=percent.x+percent.y), width=.1) +
     geom_point()

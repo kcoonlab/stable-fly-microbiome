@@ -1,7 +1,7 @@
 set.seed(123456)
 
 source("./Helper_Functions.R")
-source("./TwinMom16S_Shared_Functions.R")
+source("./TwinMom16S_Shared_Functions.R") #From CITATION
 
 # Load required packages
 library(phyloseq)
@@ -44,6 +44,10 @@ ps <- subset_taxa(ps,taxa_sums(ps)>0)
 # Drop ASVs assigned to "Archaea", "Mitochondria" or "Chloroplast"
 ps <- ps %>% subset_taxa( Domain!= "Archaea" & Family!= " Mitochondria" | is.na(Family) )
 ps <- ps %>% subset_taxa( tax_table(ps)[,"Order"]!=" Chloroplast" | is.na(tax_table(ps)[,"Order"]) )
+
+#### Note: The below code is specific to Arlington-derived samples ####
+
+#### Goal: Calculate the number of shared ASVs between internal/external fly samples and manure samples collected from the same facility (Fig. 5A) ####
 
 sample_data(ps)$merge_factor <- c("Endo10A-7.16.2021","Endo10B-7.16.2021","Endo10D-7.16.2021","Endo11A-7.22.2021","Endo11B-7.22.2021","Endo11D-7.22.2021","Endo11E-7.22.2021","Endo12B-7.23.2021","Endo12C-7.23.2021","Endo12D-7.23.2021","Endo12E-7.23.2021","Endo13A-7.23.2021","Endo13B-7.23.2021","Endo13C-7.23.2021","Endo13D-7.23.2021","Endo13E-7.23.2021","Endo14A-7.23.2021","Endo14B-7.23.2021","Endo14C-7.23.2021","Endo15A-7.23.2021","Endo15B-7.23.2021","Endo15C-7.23.2021","Endo15D-7.23.2021","Endo16A-7.29.2021","Endo17C-7.30.2021","Endo18A-7.30.2021","Endo18B-7.30.2021","Endo19A-7.30.2021","Endo19B-7.30.2021","Endo1A-7.8.2021","Endo1B-7.8.2021","Endo20A-7.30.2021","Endo20B-7.30.2021","Endo21A-8.5.2021","Endo22A-8.6.2021","Endo22B-8.6.2021","Endo22C-8.6.2021","Endo22D-8.6.2021","Endo22E-8.6.2021","Endo23A-8.6.2021","Endo23B-8.6.2021","Endo23C-8.6.2021","Endo23D-8.6.2021","Endo23E-8.6.2021","Endo24A-8.6.2021","Endo24B-8.6.2021","Endo24C-8.6.2021","Endo24D-8.6.2021","Endo24E-8.6.2021","Endo25A-8.6.2021","Endo25B-8.6.2021","Endo25C-8.6.2021","Endo25D-8.6.2021","Endo27A-8.13.2021","Endo27B-8.13.2021","Endo27C-8.13.2021","Endo27D-8.13.2021","Endo27E-8.13.2021","Endo28A-8.13.2021","Endo28B-8.13.2021","Endo29A-8.13.2021","Endo29B-8.13.2021","Endo2A-7.9.2021","Endo2B-7.9.2021","Endo30A-8.13.2021","Endo30B-8.13.2021","Endo30C-8.13.2021","Endo30D-8.13.2021","Endo32A-8.20.2021","Endo32D-8.20.2021","Endo33A-8.20.2021","Endo33B-8.20.2021","Endo34A-8.20.2021","Endo34B-8.20.2021","Endo34C-8.20.2021","Endo35A-8.20.2021","Endo37A-8.27.2021","Endo37B-8.27.2021","Endo37C-8.27.2021","Endo37D-8.27.2021","Endo37E-8.27.2021","Endo38A-8.27.2021","Endo39A-8.27.2021","Endo39B-8.27.2021","Endo39C-8.27.2021","Endo39D-8.27.2021","Endo3A-7.9.2021","Endo3C-7.9.2021","Endo3D-7.9.2021","Endo3E-7.9.2021","Endo40A-8.27.2021","Endo40B-8.27.2021","Endo40C-8.27.2021","Endo41A-9.9.2021","Endo42A-9.10.2021","Endo42B-9.10.2021","Endo42C-9.10.2021","Endo42D-9.10.2021","Endo42E-9.10.2021","Endo44A-9.10.2021","Endo44B-9.10.2021","Endo44C-9.10.2021","Endo44D-9.10.2021","Endo44E-9.10.2021","Endo46A-9.15.2021","Endo4A-7.9.2021","Endo4B-7.9.2021","Endo4C-7.9.2021","Endo4D-7.9.2021","Endo5A-7.9.2021","Endo5B-7.9.2021","Endo6A-7.15.2021","Endo6B-7.15.2021","Endo6C-7.15.2021","Endo6E-7.15.2021","Endo7B-7.16.2021","Endo7C-7.16.2021","Endo7D-7.16.2021","Endo7E-7.16.2021","Endo8A-7.16.2021","Endo8C-7.16.2021","Endo8D-7.16.2021","Endo8E-7.16.2021","Endo9A-7.16.2021","Endo9B-7.16.2021","Endo9C-7.16.2021","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Manure-Manure","Ecto24-8.6.2021","Ecto10-7.16.2021","Ecto11-7.22.2021","Ecto12-7.23.2021","Ecto13-7.23.2021","Ecto14-7.23.2021","Ecto16-7.29.2021","Ecto17-7.30.2021","Ecto18-7.30.2021","Ecto19-7.30.2021","Ecto20-7.30.2021","Ecto21-8.5.2021","Ecto22-8.6.2021","Ecto23-8.6.2021","Ecto25-8.6.2021","Ecto27-8.13.2021","Ecto28-8.13.2021","Ecto29-8.13.2021","Ecto30-8.13.2021","Ecto32-8.20.2021","Ecto33-8.20.2021","Ecto34-8.20.2021","Ecto35-8.20.2021","Ecto37-8.27.2021","Ecto38-8.27.2021","Ecto39-8.27.2021","Ecto40-8.27.2021","Ecto41-9.9.2021","Ecto42-9.10.2021","Ecto44-9.10.2021","Ecto7-7.16.2021","Ecto9-7.16.2021")
 ps.arlington <- subset_samples(ps, location=="Arlington")
@@ -173,30 +177,18 @@ for (i in 1:140) {
 }
 
 # Select "Valid" Families
-
-#Families including a mother and at least one infant.
-
-#----- Determine which family groups are valid -----# 
-
-# A valid Family must have at least one mother and one infant:
+# A valid Family must have at least one manure and one fly sample:
 # So a Family object should have a family_member list equal to length 3 or
-# equal to length 2 where one of the sample_designation values is "mother"
+# equal to length 2 where one of the sample_designation values is "Manure"
 
 # Create a list to hold the valid Family objects:
 validFamilies <- familyClassList
 
-# Infant Perspective 
+# Generate a data frame holding all fly samples and all their ASVs (as rows). For each
+# ASV in the given fly sample, count the number of reads and
+# the percentage of the total reads in the sample that the ASV accounts for
 
-#----- Populate Table for Plotting Infants -----#
-
-# This is for the "infant perspective" plot.
-
-# Goal: generate a data frame holding all infants and all their ASVs (as rows). For each
-#   ASV in the given infant, count the number of reads and
-#   the percentage of the total reads in the infant that the ASV accounts for
-#   ("infant_percent" column.)
-
-allF1ASVTables <- data.frame()
+allFlyASVTables <- data.frame()
 
 for (k in 1:length(validFamilies)) {
   family <- validFamilies[[k]]
@@ -209,105 +201,94 @@ for (k in 1:length(validFamilies)) {
       currentFly <- c(currentFly,familyMembers[[i]])
     	}
 
-  # Put infants in a list to loop over:
-  currentF1List <- list(currentFly)
+  # Put fly samples in a list to loop over:
+  currentFlyList <- list(currentFly)
   
-  # Remove any NULL elements in the list (in case there is only 1 infant)
-  currentF1List <- plyr::compact(currentF1List)
+  # Remove any NULL elements in the list (in case there is only 1 fly sample)
+  currentFlyList <- plyr::compact(currentFlyList)
 
-  # Loop over the infant list and populate the "infant perspective" data frame:
-  #   allInfantASVTables - for each infant samples, holds the ASV, 
-  #     its percentage of the total reads in the infant, and whether it's shared with mother
-  #   (Later) to get the total percent shared and not shared for each infant (for plotting)
-  #     allInfantASVTables %>% group_by(sample, shared) %>% summarise(percent = sum(infants))
+  # Loop over the fly sample list and populate the data frame:
+  #   allFlyASVTables - for each fly sample, holds the ASV, 
+  #     its percentage of the total reads in the sample, and whether it's shared with manure collected from the same facility
   
-  for (i in 1:length(currentF1List[[1]])) {
+  for (i in 1:length(currentFlyList[[1]])) {
   
-    current_F1 <- currentF1List[[1]][[i]]
-    #currentInfantName <- current_infant@name
+    current_Fly <- currentFlyList[[1]][[i]]
+    #currentFlyName <- current_fly@name
     
-    # build infant's identifier (FamGroup.1 or FamGroup.2)
-    F1Designation <- current_F1@sample_designation
-    F1Identifier <- paste(family@family_group, F1Designation, sep = "/")
+    # build fly sample's identifier (FamGroup.1 or FamGroup.2)
+    FlyDesignation <- current_Fly@sample_designation
+    FlyIdentifier <- paste(family@family_group, FlyDesignation, sep = "/")
 	
 	Manure_ASV_counts = CountASVs("Manure-Manure", abdTable)
 
-    # merge current infant's ASV counts with mother's
-    F1Table <- merge(current_F1@ASV_counts,
+    # merge current fly sample's ASV counts with manure's
+    FlyTable <- merge(current_Fly@ASV_counts,
                          Manure_ASV_counts,
                          by = "ASV", all = TRUE)
     
     # Replace column names with the samples' sample_designations for easier
     #   plotting downstream:
     
-      currentColName <- names(F1Table)[2]
-      setnames(F1Table, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
+      currentColName <- names(FlyTable)[2]
+      setnames(FlyTable, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
     
-    # Collapse table to figure out what is shared from infant's perspective -
-    #   remove any ASVs that have a count of NA in the current infant.
-    F1Table <- F1Table[!(is.na(F1Table[[F1Designation]])), ]
+    # Collapse table to figure out what is shared from fly sample's perspective -
+    #   remove any ASVs that have a count of NA in the current sample
+    FlyTable <- FlyTable[!(is.na(FlyTable[[FlyDesignation]])), ]
     
     # Add a column to indicate if each ASV (row) in the collapsed table is 
-    #   shared with mom or not. If the ASV has a value of NA in mother column
-    #   then it cannot be shared between current infant and mom.
+    #   shared with manure or not. If the ASV has a value of NA in manure column
+    #   then it cannot be shared between current fly sample and manure
     
-    F1Table$shared <- ifelse(!(is.na(F1Table$"Manure-Manure")), yes = TRUE, no = FALSE)
-    F1Table$sample <- F1Identifier
+    FlyTable$shared <- ifelse(!(is.na(FlyTable$"Manure-Manure")), yes = TRUE, no = FALSE)
+    FlyTable$sample <- FlyIdentifier
 
     # Prepare to add this table to a bigger list, but don't add until end!
-    setnames(F1Table, old = F1Designation, new = "read_count")
+    setnames(FlyTable, old = FlyDesignation, new = "read_count")
       
-    # For this infant, calculate percent of reads that are from ASVs that
+    # For this fly sample, calculate percent of reads that are from ASVs that
     #   are shared with mom, and not shared with mom (keep this table).
-    F1Sum <- sum(F1Table$read_count)
-    F1SharedSum <- sum(F1Table$read_count[F1Table$shared == TRUE])
-    F1NotSharedSum <- sum(F1Table$read_count[F1Table$shared == FALSE])
+    FlySum <- sum(FlyTable$read_count)
+    FlySharedSum <- sum(FlyTable$read_count[FlyTable$shared == TRUE])
+    FlyNotSharedSum <- sum(FlyTable$read_count[FlyTable$shared == FALSE])
       
-    # Add the infantTable (the one with ASVs as rows) to larger data frame
-    F1TablePercentages <- F1Table %>%
-      mutate("F1_percent" = read_count/F1Sum) %>%
+    # Add the flyTable (the one with ASVs as rows) to larger data frame
+    FlyTablePercentages <- FlyTable %>%
+      mutate("Fly_percent" = read_count/FlySum) %>%
       dplyr::select(-c("Manure-Manure"))
-    
-    # Add infant sample name to table
-    #infantTablePercentages <- cbind(infantTablePercentages,
-                                    #"infant_sample" = currentInfantName)
-    
-    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
+        
+    allFlyASVTables <- rbind(allFlyASVTables, FlyTablePercentages)
   }
 }
 
-# Infant Perspective Richness (This generates the Arlington plot in Panel A of Fig. 5
-
-# Generate a plot that is similar to the one above, but by richness instead
-#   of relative abundance of reads.
-
-# Group allInfantASVTables by sample and shared (T/F) then count
-
-F1PerspectiveRichness <- allF1ASVTables
-array <- unlist(strsplit(F1PerspectiveRichness$sample, "[/]"))
+# Group allFlyASVTables by sample and shared (T/F) then count
+FlyPerspectiveRichness <- allFlyASVTables
+array <- unlist(strsplit(FlyPerspectiveRichness$sample, "[/]"))
 date <- array[c(TRUE, FALSE)]
-F1PerspectiveRichness$date <- date
+FlyPerspectiveRichness$date <- date
 
-F1PerspectiveRichness.1 <- F1PerspectiveRichness %>%
+FlyPerspectiveRichness.1 <- FlyPerspectiveRichness %>%
   group_by(date, sample, shared) %>%
   summarise(number_of_ASVs = n())
   
-lst <- strsplit(F1PerspectiveRichness.1$sample,'/')
+lst <- strsplit(FlyPerspectiveRichness.1$sample,'/')
 v2 <- lapply(lst, `[`, 2)
 v2 = substr(v2,1,4)
-F1PerspectiveRichness.1$sample.type <- v2
+FlyPerspectiveRichness.1$sample.type <- v2
 
-F1SharedOTUs <- F1PerspectiveRichness.1
-F1SharedOTUs <- filter(F1SharedOTUs, shared == TRUE)
-F1SharedOTUs <- subset(F1SharedOTUs, select = c(date,sample,number_of_ASVs, sample.type))
-F1SharedOTUs$sample.type <- factor(F1SharedOTUs$sample.type, levels=c("Endo", "Ecto"))
-F1SharedOTUs$trap <- c("B2-West","B1-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B1-East","B1-West","B2-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B2-East","B1-East","B1-East","B1-East","B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East")
-F1SharedOTUs$trap <- factor(F1SharedOTUs$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
-kruskal.test(number_of_ASVs~as.factor(sample.type),data=F1SharedOTUs) #Significant (p < 0.0001)
-means <- aggregate(number_of_ASVs ~ sample.type, data = F1SharedOTUs, 
+FlySharedOTUs <- FlyPerspectiveRichness.1
+FlySharedOTUs <- filter(FlySharedOTUs, shared == TRUE)
+FlySharedOTUs <- subset(FlySharedOTUs, select = c(date,sample,number_of_ASVs, sample.type))
+FlySharedOTUs$sample.type <- factor(FlySharedOTUs$sample.type, levels=c("Endo", "Ecto"))
+FlySharedOTUs$trap <- c("B2-West","B1-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B1-East","B1-West","B2-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B2-East","B1-East","B1-East","B1-East","B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East")
+FlySharedOTUs$trap <- factor(FlySharedOTUs$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
+
+kruskal.test(number_of_ASVs~as.factor(sample.type),data=FlySharedOTUs) #Significant (p < 0.0001)
+
+means <- aggregate(number_of_ASVs ~ sample.type, data = FlySharedOTUs, 
           FUN = function(x) c(mean = mean(x)))
-
-cis <- aggregate(number_of_ASVs ~ sample.type, data = F1SharedOTUs, 
+cis <- aggregate(number_of_ASVs ~ sample.type, data = FlySharedOTUs, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 
 summary <- merge(means,cis,by="sample.type")
@@ -317,21 +298,62 @@ ggplot(summary, aes(x = sample.type, y = number_of_ASVs.x)) + #Fig. 5A
     geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-#### This generates Arlington plot in Fig. S7 ####
-means <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Ecto, 
+#### Goal: Calculate relative abundance of fly-associated taxa that are shared with manure collected from the same facility (or not) (Fig. 5B) ####
+
+FlyPerspectiveRA <- allFlyASVTables
+array <- unlist(strsplit(FlyPerspectiveRA$sample, "[/]"))
+date <- array[c(TRUE, FALSE)]
+FlyPerspectiveRA$date <- date
+
+FlyPerspectiveRA.1 <- FlyPerspectiveRA %>%
+  group_by(date, sample, shared) %>%
+  summarise(tot_shared_reads = sum(read_count))
+  
+FlyPerspectiveRA.2 <- FlyPerspectiveRA.1 %>%
+  group_by(sample) %>%
+  summarise(tot_reads = sum(tot_shared_reads))
+
+FlyPerspectiveRA.3 <- merge(x = FlyPerspectiveRA.1,y = FlyPerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
+FlyPerspectiveRA.3$percent <- FlyPerspectiveRA.3$tot_shared_reads/FlyPerspectiveRA.3$tot_reads
+FlyPerspectiveRA.3$source <- ifelse(str_detect(FlyPerspectiveRA.3$sample,"Endo"), "Endo", "Ecto")
+		
+kruskal.test(percent~as.factor(source),data=FlyPerspectiveRA.3) #NS (P = 0.9586)
+kruskal.test(percent~as.factor(date),data=FlyPerspectiveRA.3) #NS (P = 1)
+
+data_summary <- aggregate(percent ~ as.factor(source), FlyPerspectiveRA.3,
+                          function(x) c(mean = mean(x),
+                                        se = sd(x) / sqrt(length(x))))
+data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
+data_summary$ci <- 1.96*data_summary$se
+data_summary$group <- factor(data_summary$group, levels=c("Endo", "Ecto"))
+ggplot(data_summary) +
+    geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
+    geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
+    ylim(0,1)
+		 	 
+#### Goal: Calculate the number of shared ASVs between internal/external fly samples and manure samples collected from the same facility across different sampling dates (Fig. S7) ####
+			  
+FlySharedOTUs$date <- factor(FlySharedOTUs$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
+FlySharedOTUs.Endo <- FlySharedOTUs[FlySharedOTUs$sample.type=="Endo",]
+FlySharedOTUs.Ecto <- FlySharedOTUs[FlySharedOTUs$sample.type=="Ecto",]
+kruskal.test(number_of_ASVs~as.factor(date),data=FlySharedOTUs.Endo) #NS (P = 0.5275)
+kruskal.test(number_of_ASVs~as.factor(date),data=FlySharedOTUs.Ecto) #NS (P = 0.0781)
+			  
+means <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Ecto, 
+cis <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="date")
 summary$date <- factor(summary$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
 ggplot(summary, aes(x = date, y = number_of_ASVs.x)) +
-    geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) + #Fig. S7 (left)
+    geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-#### This generates lower plot in Fig. S8 ####
-means <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Endo, 
+#### Goal: Calculate the number of shared ASVs between internal/external fly samples and manure samples collected from the same facility across different sampling locations (Fig. S8) ####
+
+means <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Endo, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Endo, 
+cis <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Endo, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="trap")
 summary$date <- factor(summary$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
@@ -339,10 +361,9 @@ ggplot(summary, aes(x = trap, y = number_of_ASVs.x)) + #Fig. S8 (bottom)
     geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-#### This generates upper plot in Fig. S8 ####
-means <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Ecto, 
+means <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Ecto, 
+cis <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="trap")
 summary$date <- factor(summary$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
@@ -350,50 +371,10 @@ ggplot(summary, aes(x = date, y = number_of_ASVs.x)) + #Fig. S8 (top)
     geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-#### This generates Arlington plot in Panel B of Fig. 5 ####
+#### Goal: Calculate relative abundance of fly-associated taxa that are shared with manure collected from the same facility (or not), across different sampling dates (Fig. S9) ####
 
-F1PerspectiveRA <- allF1ASVTables
-array <- unlist(strsplit(F1PerspectiveRA$sample, "[/]"))
-date <- array[c(TRUE, FALSE)]
-F1PerspectiveRA$date <- date
-
-F1PerspectiveRA.1 <- F1PerspectiveRA %>%
-  group_by(date, sample, shared) %>%
-  summarise(tot_shared_reads = sum(read_count))
-  
-F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
-  group_by(sample) %>%
-  summarise(tot_reads = sum(tot_shared_reads))
-
-F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
-
-F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
-
-write.csv(F1PerspectiveRA.3, 
-            file = "ManurePerspectiveRAFlies.csv",
-            quote = FALSE, row.names = FALSE)
-                 
-data=read.csv("ManurePerspectiveRAFliesFormatted.csv")
-kruskal.test(percent_shared~as.factor(fly.source),data=data) #Significant (p = 0.04489)
-kruskal.test(percent_shared~as.factor(date),data=data) #Significant (p = 0.01791)
-pairwise.wilcox.test(data$percent_shared, as.factor(data$date),
-                 p.adjust.method = "BH", exact = FALSE) #Only significant: 7.9.2021 vs. 8.13.2021
-
-data_summary <- aggregate(percent_shared ~ as.factor(fly.source), data,       # Create summary data
-                          function(x) c(mean = mean(x),
-                                        se = sd(x) / sqrt(length(x))))
-data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
-data_summary$ci <- 1.96*data_summary$se
-data_summary$group <- factor(data_summary$group, levels=c("Endo", "Ecto"))
-ggplot(data_summary) + #Fig. 5B
-    geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
-    geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
-    ylim(0,1)
-
-
-#### This generates upper Arlington plot in Fig. S9 ####
 data.endo <- data[data$fly.source=="Endo",]
-data_summary <- aggregate(percent_shared ~ as.factor(date), data.endo,       # Create summary data
+data_summary <- aggregate(percent_shared ~ as.factor(date), data.endo,
                           function(x) c(mean = mean(x),
                                         se = sd(x) / sqrt(length(x))))
 data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
@@ -404,9 +385,8 @@ ggplot(data_summary) + #Fig. S9
     geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 
-#### This generates lower Arlington plot in Fig. S9 ####
 data.ecto <- data[data$fly.source=="Ecto",]
-data_summary <- aggregate(percent_shared ~ as.factor(date), data.ecto,       # Create summary data
+data_summary <- aggregate(percent_shared ~ as.factor(date), data.ecto,
                           function(x) c(mean = mean(x),
                                         se = sd(x) / sqrt(length(x))))
 data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
@@ -417,7 +397,8 @@ ggplot(data_summary) + #Fig. S9
     geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 
-### Identify commonly shared ASVs in Arlington samples ####
+#### Goal: Identify ASVs that are commonly shared between fly and manure samples collected from the same facility (Fig. 6) ####
+			  
 ps.Merged.manure <- subset_taxa(ps.Merged,otu_table(ps.Merged)["Manure-Manure",]>0)
 ps.Merged.manure <- subset_samples(ps.Merged.manure, pooltype != "Manure")
 asvfac <- rownames(otu_table(ps.Merged.manure))
@@ -436,7 +417,58 @@ tax_table(ps.Merged.manure)[df.asvtab.out$asv,]
 
 ggplot(df.asvtab.out, aes(x = asv, y = asvtab)) +
   geom_bar(fill = "#DCDCDC", stat = "identity")
+
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility (Fig. 7) ####
                           
+ps.Merged <- merge_samples(ps.arlington,"sample.type")
+ps.Merged <- transform_sample_counts(ps.Merged, function(x) x / sum(x) )
+row_names <- row.names(sample_data(ps.Merged))
+sample_data(ps.Merged)$sample_id <- row_names
+otus <- otu_table(ps.Merged)
+otus <- as.data.frame(t(otus))
+row_names <- row.names(otus)
+otus$ASV <- row_names
+                                     
+otus <- otus[otus$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
+
+otus$ASV <- factor(otus$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
+
+ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
+                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
+                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
+                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
+
+myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801", "#a63603", 
+              "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
+names(myColors) <- ASVNames
+
+#Manure
+ggplot(otus, aes(fill=ASV, y=Manure, x="")) + #Fig. 7
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_manual(name = "ASV", values = myColors)
+				     
+#Ecto
+ggplot(otus, aes(fill=ASV, y=Ecto, x="")) + #Fig. 7
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_manual(name = "ASV", values = myColors)
+				     
+#Endo
+ggplot(otus, aes(fill=ASV, y=Ecto, x="")) + #Fig. 7
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_manual(name = "ASV", values = myColors)
+
+
+
+
+
+
+				     
 #### Fig. S11 ####
 
 sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$sampling.date, sep = "-")
@@ -707,48 +739,7 @@ scale_fill_manual(name = "ASV", values = myColors)
 
 F1PerspectivePlot #Fig. S11
 
-####Arlington plot in Fig. 7 ####
-                          
-ps.Merged <- merge_samples(ps.arlington,"sample.type")
-ps.Merged <- transform_sample_counts(ps.Merged, function(x) x / sum(x) )
-row_names <- row.names(sample_data(ps.Merged))
-sample_data(ps.Merged)$sample_id <- row_names
-otus <- otu_table(ps.Merged)
-otus <- as.data.frame(t(otus))
-row_names <- row.names(otus)
-otus$ASV <- row_names
-                                     
-otus <- otus[otus$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
 
-otus$ASV <- factor(otus$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
-
-ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
-
-myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801", "#a63603", 
-              "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
-names(myColors) <- ASVNames
-
-#Manure
-ggplot(otus, aes(fill=ASV, y=Manure, x="")) + #Fig. 7
-    geom_bar(position="stack", stat="identity") +
-    scale_fill_manual(name = "ASV", values = myColors)
-#Ecto
-ggplot(otus, aes(fill=ASV, y=Ecto, x="")) + #Fig. 7
-    geom_bar(position="stack", stat="identity") +
-    scale_fill_manual(name = "ASV", values = myColors)
-#Endo
-ggplot(otus, aes(fill=ASV, y=Ecto, x="")) + #Fig. 7
-    geom_bar(position="stack", stat="identity") +
-    scale_fill_manual(name = "ASV", values = myColors)
 
 #### Arlington plot in Fig. ####
 

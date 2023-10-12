@@ -339,8 +339,8 @@ ggplot(data_summary) +
 F1SharedOTUs$date <- factor(F1SharedOTUs$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
 F1SharedOTUs.Endo <- F1SharedOTUs[F1SharedOTUs$sample.type=="Endo",]
 F1SharedOTUs.Ecto <- F1SharedOTUs[F1SharedOTUs$sample.type=="Ecto",]
-kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Endo) #NS (P = 0.5275)
-kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Ecto) #NS (P = 0.0781)
+kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Endo) # NS (P = 0.5275)
+kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Ecto) # NS (P = 0.0781)
 			  
 means <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Ecto, 
           FUN = function(x) c(mean = mean(x)))
@@ -876,19 +876,17 @@ otus <- otus[otus$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb7
                 "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
                 "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
 
-otus$ASV <- factor(otus$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
-
-ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
-
+otus$ASV <- factor(otus$ASV,levels = c("3289d95c4a81c516faa9d263f55202d2", "350bce411d627b38ef18aeaebd7d4f69","6207db2806b88c7f75541b8de1c42f50",
+				      "91f2efe0637f2f2062c1252c32a8e4eb", "5dbd59fa8200705770f4d068d6572dc3", "66402d8adb61bb82bd8d7fb58d832c10",
+				      "d56a560e43e7ab41839a1c8a10f65d36", "8da7704aad448995f55464ee650a4452", "ff27974c65664de75e6421a62a0448a3",
+				      "15d888a8d8e6c158974710b615dcbcdf", "945bb343f8dc3dd656b9ca15c3c0f09d", "e0597b0224419e26dd82616c75f8c1d2", "b40dfe8590cdabab904a9931210d2805",
+				      "bcaaa3d15ff438cfa14dbec5d86b0eb8", "aaa9219facfcb711b04e0d3c190b571a", "b77e07971c99cc0a36c99bd7cad83c16", "dcfd8312bf9f39a54aab3707c3b140df"))
+				
+ASVNames <- c("ASV 6644", "ASV 6664", "ASV 6775", "ASV 6767", "ASV 6760", "ASV 7558", "ASV 7573", "ASV 7392", "ASV 7403", "ASV 7414", "ASV 7420",
+	     "ASV 7537", "ASV 4886", "ASV 5059", "ASV 4736", "ASV 5087", "ASV 4947")
+				     
 myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801", "#a63603", 
               "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
-names(myColors) <- ASVNames
 
 # Manure
 ggplot(otus, aes(fill=ASV, y=Manure, x="")) +
@@ -1063,19 +1061,17 @@ ASVTax <- ASVTax[ASVTax$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219f
                 "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
                 "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
                           
-allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
-
-ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
-
-myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801",
-        "#a63603", "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
-names(myColors) <- ASVNames
+allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("3289d95c4a81c516faa9d263f55202d2", "350bce411d627b38ef18aeaebd7d4f69","6207db2806b88c7f75541b8de1c42f50",
+				      "91f2efe0637f2f2062c1252c32a8e4eb", "5dbd59fa8200705770f4d068d6572dc3", "66402d8adb61bb82bd8d7fb58d832c10",
+				      "d56a560e43e7ab41839a1c8a10f65d36", "8da7704aad448995f55464ee650a4452", "ff27974c65664de75e6421a62a0448a3",
+				      "15d888a8d8e6c158974710b615dcbcdf", "945bb343f8dc3dd656b9ca15c3c0f09d", "e0597b0224419e26dd82616c75f8c1d2", "b40dfe8590cdabab904a9931210d2805",
+				      "bcaaa3d15ff438cfa14dbec5d86b0eb8", "aaa9219facfcb711b04e0d3c190b571a", "b77e07971c99cc0a36c99bd7cad83c16", "dcfd8312bf9f39a54aab3707c3b140df"))
+				
+ASVNames <- c("ASV 6644", "ASV 6664", "ASV 6775", "ASV 6767", "ASV 6760", "ASV 7558", "ASV 7573", "ASV 7392", "ASV 7403", "ASV 7414", "ASV 7420",
+	     "ASV 7537", "ASV 4886", "ASV 5059", "ASV 4736", "ASV 5087", "ASV 4947")
+				     
+myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801", "#a63603", 
+              "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
 
 F1PerspectivePlot <- ggplot(allF1ASVTables,
                                 aes(x = sample, y = F1_percent, 
@@ -1236,19 +1232,17 @@ ASVTax <- ASVTax[ASVTax$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219f
                 "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
                 "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
                           
-allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
-
-ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
-
-myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801",
-        "#a63603", "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
-names(myColors) <- ASVNames
+allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("3289d95c4a81c516faa9d263f55202d2", "350bce411d627b38ef18aeaebd7d4f69","6207db2806b88c7f75541b8de1c42f50",
+				      "91f2efe0637f2f2062c1252c32a8e4eb", "5dbd59fa8200705770f4d068d6572dc3", "66402d8adb61bb82bd8d7fb58d832c10",
+				      "d56a560e43e7ab41839a1c8a10f65d36", "8da7704aad448995f55464ee650a4452", "ff27974c65664de75e6421a62a0448a3",
+				      "15d888a8d8e6c158974710b615dcbcdf", "945bb343f8dc3dd656b9ca15c3c0f09d", "e0597b0224419e26dd82616c75f8c1d2", "b40dfe8590cdabab904a9931210d2805",
+				      "bcaaa3d15ff438cfa14dbec5d86b0eb8", "aaa9219facfcb711b04e0d3c190b571a", "b77e07971c99cc0a36c99bd7cad83c16", "dcfd8312bf9f39a54aab3707c3b140df"))
+				
+ASVNames <- c("ASV 6644", "ASV 6664", "ASV 6775", "ASV 6767", "ASV 6760", "ASV 7558", "ASV 7573", "ASV 7392", "ASV 7403", "ASV 7414", "ASV 7420",
+	     "ASV 7537", "ASV 4886", "ASV 5059", "ASV 4736", "ASV 5087", "ASV 4947")
+				     
+myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801", "#a63603", 
+              "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
 
 F1PerspectivePlot <- ggplot(allF1ASVTables,
                                 aes(x = sample, y = F1_percent, 
@@ -1944,20 +1938,18 @@ otus$ASV <- row_names
 otus <- otus[otus$ASV %in% c("54da6e3cec6a60921af7000cf5ff5618","4090940358ca56a1a6eaf8a8358fc385","aa9dd0558e3ae8c191cb17006a015ac6","51dd067f061e4a29209e9a130e91fff1","ee8bee9484867271efc76ea8c4282398",
 			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
 			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d"), ]
+				     
+otus$ASV <- factor(otus$ASV,levels = c("aa9dd0558e3ae8c191cb17006a015ac6", "3289d95c4a81c516faa9d263f55202d2", "ee8bee9484867271efc76ea8c4282398",
+				      "c27f94cb991502e7b017667c6c96f10d", "91f2efe0637f2f2062c1252c32a8e4eb", "51dd067f061e4a29209e9a130e91fff1", "5ce7c8bf6dc2353464c2be491f5cdf7a",
+				      "e1efe25b737119a0211e4f15b35f3023",
+				      "15d888a8d8e6c158974710b615dcbcdf", "54da6e3cec6a60921af7000cf5ff5618",
+				      "aaa9219facfcb711b04e0d3c190b571a", "4090940358ca56a1a6eaf8a8358fc385"))
 
-otus$ASV <- factor(otus$ASV,levels = c("54da6e3cec6a60921af7000cf5ff5618","4090940358ca56a1a6eaf8a8358fc385","aa9dd0558e3ae8c191cb17006a015ac6","51dd067f061e4a29209e9a130e91fff1","ee8bee9484867271efc76ea8c4282398",
-			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
-			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d"))
+ASVNames <- c("ASV 5867", "ASV 6644", "ASV 6672", "ASV 6752", "ASV 6767", "ASV 6333", "ASV 6824", "ASV 7562", "ASV 7414",
+	     "ASV 4709", "ASV 4736", "ASV 5064")
 
-ASVNames <- c("54da6e3cec6a60921af7000cf5ff5618","4090940358ca56a1a6eaf8a8358fc385","aa9dd0558e3ae8c191cb17006a015ac6","51dd067f061e4a29209e9a130e91fff1","ee8bee9484867271efc76ea8c4282398",
-			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
-			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d")
-
-#nb.cols <- length(ASVNames)
-#myColors <- colorRampPalette(brewer.pal(n = 8, name = "Set2"))(nb.cols)
 myColors <- c("#6a51a3", "#edf3f7", "#b8d1e4", "#6baed6", "#4292c6", "#08519c", "#0d315d", "#fdd0a2", "#d94801", "#e8e4d1",
 	"#d4d4d4", "#a1a1a1")
-names(myColors) <- ASVNames
 
 ggplot(otus, aes(fill=ASV, y=Manure, x="")) +
     geom_bar(position="stack", stat="identity") +
@@ -2127,16 +2119,17 @@ ASVTax <- ASVTax[ASVTax$ASV %in% c("54da6e3cec6a60921af7000cf5ff5618","409094035
 			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
 			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d"), ]
 
-allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("54da6e3cec6a60921af7000cf5ff5618","4090940358ca56a1a6eaf8a8358fc385","aa9dd0558e3ae8c191cb17006a015ac6","51dd067f061e4a29209e9a130e91fff1","ee8bee9484867271efc76ea8c4282398",
-			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
-			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d"))
+allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("aa9dd0558e3ae8c191cb17006a015ac6", "3289d95c4a81c516faa9d263f55202d2", "ee8bee9484867271efc76ea8c4282398",
+				      "c27f94cb991502e7b017667c6c96f10d", "91f2efe0637f2f2062c1252c32a8e4eb", "51dd067f061e4a29209e9a130e91fff1", "5ce7c8bf6dc2353464c2be491f5cdf7a",
+				      "e1efe25b737119a0211e4f15b35f3023",
+				      "15d888a8d8e6c158974710b615dcbcdf", "54da6e3cec6a60921af7000cf5ff5618",
+				      "aaa9219facfcb711b04e0d3c190b571a", "4090940358ca56a1a6eaf8a8358fc385"))
 
-ASVNames <- c("54da6e3cec6a60921af7000cf5ff5618","4090940358ca56a1a6eaf8a8358fc385","aa9dd0558e3ae8c191cb17006a015ac6","51dd067f061e4a29209e9a130e91fff1","ee8bee9484867271efc76ea8c4282398",
-			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
-			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d")
+ASVNames <- c("ASV 5867", "ASV 6644", "ASV 6672", "ASV 6752", "ASV 6767", "ASV 6333", "ASV 6824", "ASV 7562", "ASV 7414",
+	     "ASV 4709", "ASV 4736", "ASV 5064")
 
-myColors <- c("#6a51a3", "#edf3f7", "#b8d1e4", "#6baed6", "#4292c6", "#08519c", "#0d315d", "#fdd0a2", "#d94801", "#e8e4d1", "#d4d4d4", "#a1a1a1")
-names(myColors) <- ASVNames
+myColors <- c("#6a51a3", "#edf3f7", "#b8d1e4", "#6baed6", "#4292c6", "#08519c", "#0d315d", "#fdd0a2", "#d94801", "#e8e4d1",
+	"#d4d4d4", "#a1a1a1")
 
 F1PerspectivePlot <- ggplot(allF1ASVTables,
                                 aes(x = sample, y = F1_percent, 
@@ -2280,34 +2273,30 @@ for (k in 1:length(familyClassList)) {
   }
 }
 
-allF1ASVTables <- allF1ASVTables[allF1ASVTables$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
+allF1ASVTables <- allF1ASVTables[allF1ASVTables$ASV %in% c("54da6e3cec6a60921af7000cf5ff5618","4090940358ca56a1a6eaf8a8358fc385","aa9dd0558e3ae8c191cb17006a015ac6","51dd067f061e4a29209e9a130e91fff1","ee8bee9484867271efc76ea8c4282398",
+			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
+			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d"), ]
 
 allF1ASVTables$sample <- factor(allF1ASVTables$sample,levels = c("Manure-DCC-Outdoor", "Manure-DCC-Q1", "Manure-DCC-Q2", "Manure-DCC-Q3", "Manure-DCC-Q4"))
 
 ASVTax <- as.data.frame(tax_table(ps.Merged))
 ASVIDs <- row.names(ASVTax)
 ASVTax$ASV <- ASVIDs
-ASVTax <- ASVTax[ASVTax$ASV %in% c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"), ]
+ASVTax <- ASVTax[ASVTax$ASV %in% c("54da6e3cec6a60921af7000cf5ff5618","4090940358ca56a1a6eaf8a8358fc385","aa9dd0558e3ae8c191cb17006a015ac6","51dd067f061e4a29209e9a130e91fff1","ee8bee9484867271efc76ea8c4282398",
+			"91f2efe0637f2f2062c1252c32a8e4eb","e1efe25b737119a0211e4f15b35f3023","3289d95c4a81c516faa9d263f55202d2","5ce7c8bf6dc2353464c2be491f5cdf7a","15d888a8d8e6c158974710b615dcbcdf",
+			"aaa9219facfcb711b04e0d3c190b571a","c27f94cb991502e7b017667c6c96f10d"), ]
                           
-allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf"))
+allF1ASVTables$ASV <- factor(allF1ASVTables$ASV,levels = c("aa9dd0558e3ae8c191cb17006a015ac6", "3289d95c4a81c516faa9d263f55202d2", "ee8bee9484867271efc76ea8c4282398",
+				      "c27f94cb991502e7b017667c6c96f10d", "91f2efe0637f2f2062c1252c32a8e4eb", "51dd067f061e4a29209e9a130e91fff1", "5ce7c8bf6dc2353464c2be491f5cdf7a",
+				      "e1efe25b737119a0211e4f15b35f3023",
+				      "15d888a8d8e6c158974710b615dcbcdf", "54da6e3cec6a60921af7000cf5ff5618",
+				      "aaa9219facfcb711b04e0d3c190b571a", "4090940358ca56a1a6eaf8a8358fc385"))
 
-ASVNames <- c("d56a560e43e7ab41839a1c8a10f65d36", "aaa9219facfcb711b04e0d3c190b571a", "3289d95c4a81c516faa9d263f55202d2", "8da7704aad448995f55464ee650a4452", "66402d8adb61bb82bd8d7fb58d832c10",
-                "6207db2806b88c7f75541b8de1c42f50", "91f2efe0637f2f2062c1252c32a8e4eb", "350bce411d627b38ef18aeaebd7d4f69", "dcfd8312bf9f39a54aab3707c3b140df", "945bb343f8dc3dd656b9ca15c3c0f09d",
-                "e0597b0224419e26dd82616c75f8c1d2", "bcaaa3d15ff438cfa14dbec5d86b0eb8", "5dbd59fa8200705770f4d068d6572dc3", "b77e07971c99cc0a36c99bd7cad83c16", "b40dfe8590cdabab904a9931210d2805",
-                "ff27974c65664de75e6421a62a0448a3", "15d888a8d8e6c158974710b615dcbcdf")
+ASVNames <- c("ASV 5867", "ASV 6644", "ASV 6672", "ASV 6752", "ASV 6767", "ASV 6333", "ASV 6824", "ASV 7562", "ASV 7414",
+	     "ASV 4709", "ASV 4736", "ASV 5064")
 
-myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", "#fdae6b", "#fd8d3c", "#f16913", "#d94801",
-        "#a63603", "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
-names(myColors) <- ASVNames
+myColors <- c("#6a51a3", "#edf3f7", "#b8d1e4", "#6baed6", "#4292c6", "#08519c", "#0d315d", "#fdd0a2", "#d94801", "#e8e4d1",
+	"#d4d4d4", "#a1a1a1")
 
 F1PerspectivePlot <- ggplot(allF1ASVTables,
                                 aes(x = sample, y = F1_percent, 

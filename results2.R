@@ -400,6 +400,445 @@ ggplot(data_summary) +
     geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 
+#### Goal: Calculate relative abundance of fly-associated taxa that are shared with manure collected from the same facility (or not), across different sampling locations (Fig. S10) ####
+
+sample_data(ps)$merge_factor <- c("Endo10A-B2-West",
+"Endo10B-B2-West",
+"Endo10D-B2-West",
+"Endo11A-DCC",
+"Endo11B-DCC",
+"Endo11D-DCC",
+"Endo11E-DCC",
+"Endo12B-B1-East",
+"Endo12C-B1-East",
+"Endo12D-B1-East",
+"Endo12E-B1-East",
+"Endo13A-B1-West",
+"Endo13B-B1-West",
+"Endo13C-B1-West",
+"Endo13D-B1-West",
+"Endo13E-B1-West",
+"Endo14A-B2-East",
+"Endo14B-B2-East",
+"Endo14C-B2-East",
+"Endo15A-B2-West",
+"Endo15B-B2-West",
+"Endo15C-B2-West",
+"Endo15D-B2-West",
+"Endo16A-DCC",
+"Endo17C-B1-East",
+"Endo18A-B1-West",
+"Endo18B-B1-West",
+"Endo19A-B2-East",
+"Endo19B-B2-East",
+"Endo1A-DCC",
+"Endo1B-DCC",
+"Endo20A-B2-West",
+"Endo20B-B2-West",
+"Endo21A-DCC",
+"Endo22A-B1-East",
+"Endo22B-B1-East",
+"Endo22C-B1-East",
+"Endo22D-B1-East",
+"Endo22E-B1-East",
+"Endo23A-B1-West",
+"Endo23B-B1-West",
+"Endo23C-B1-West",
+"Endo23D-B1-West",
+"Endo23E-B1-West",
+"Endo24A-B2-East",
+"Endo24B-B2-East",
+"Endo24C-B2-East",
+"Endo24D-B2-East",
+"Endo24E-B2-East",
+"Endo25A-B2-West",
+"Endo25B-B2-West",
+"Endo25C-B2-West",
+"Endo25D-B2-West",
+"Endo27A-B1-East",
+"Endo27B-B1-East",
+"Endo27C-B1-East",
+"Endo27D-B1-East",
+"Endo27E-B1-East",
+"Endo28A-B1-West",
+"Endo28B-B1-West",
+"Endo29A-B2-East",
+"Endo29B-B2-East",
+"Endo2A-B1-East",
+"Endo2B-B1-East",
+"Endo30A-B2-West",
+"Endo30B-B2-West",
+"Endo30C-B2-West",
+"Endo30D-B2-West",
+"Endo32A-B1-East",
+"Endo32D-B1-East",
+"Endo33A-B1-West",
+"Endo33B-B1-West",
+"Endo34A-B2-East",
+"Endo34B-B2-East",
+"Endo34C-B2-East",
+"Endo35A-B2-West",
+"Endo37A-B1-East",
+"Endo37B-B1-East",
+"Endo37C-B1-East",
+"Endo37D-B1-East",
+"Endo37E-B1-East",
+"Endo38A-B1-West",
+"Endo39A-B2-East",
+"Endo39B-B2-East",
+"Endo39C-B2-East",
+"Endo39D-B2-East",
+"Endo3A-B1-West",
+"Endo3C-B1-West",
+"Endo3D-B1-West",
+"Endo3E-B1-West",
+"Endo40A-B2-West",
+"Endo40B-B2-West",
+"Endo40C-B2-West",
+"Endo41A-DCC",
+"Endo42A-B1-East",
+"Endo42B-B1-East",
+"Endo42C-B1-East",
+"Endo42D-B1-East",
+"Endo42E-B1-East",
+"Endo44A-B2-East",
+"Endo44B-B2-East",
+"Endo44C-B2-East",
+"Endo44D-B2-East",
+"Endo44E-B2-East",
+"Endo46A-DCC",
+"Endo4A-B2-East",
+"Endo4B-B2-East",
+"Endo4C-B2-East",
+"Endo4D-B2-East",
+"Endo5A-B2-West",
+"Endo5B-B2-West",
+"Endo6A-DCC",
+"Endo6B-DCC",
+"Endo6C-DCC",
+"Endo6E-DCC",
+"Endo7B-B1-East",
+"Endo7C-B1-East",
+"Endo7D-B1-East",
+"Endo7E-B1-East",
+"Endo8A-B1-West",
+"Endo8C-B1-West",
+"Endo8D-B1-West",
+"Endo8E-B1-West",
+"Endo9A-B2-East",
+"Endo9B-B2-East",
+"Endo9C-B2-East",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Manure-Manure",
+"Ecto24-B2-East",
+"Ecto10-B2-West",
+"Ecto11-DCC",
+"Ecto12-B1-East",
+"Ecto13-B1-West",
+"Ecto14-B2-East",
+"Ecto16-DCC",
+"Ecto17-B1-East",
+"Ecto18-B1-West",
+"Ecto19-B2-East",
+"Ecto20-B2-West",
+"Ecto21-DCC",
+"Ecto22-B1-East",
+"Ecto23-B1-West",
+"Ecto25-B2-West",
+"Ecto27-B1-East",
+"Ecto28-B1-West",
+"Ecto29-B2-East",
+"Ecto30-B2-West",
+"Ecto32-B1-East",
+"Ecto33-B1-West",
+"Ecto34-B2-East",
+"Ecto35-B2-West",
+"Ecto37-B1-East",
+"Ecto38-B1-West",
+"Ecto39-B2-East",
+"Ecto40-B2-West",
+"Ecto41-DCC",
+"Ecto42-B1-East",
+"Ecto44-B2-East",
+"Ecto7-B1-East",
+"Ecto9-B2-East")
+ps.arlington <- subset_samples(ps, location=="Arlington")
+ps.Merged <- merge_samples(ps.arlington,"merge_factor")
+row_names <- row.names(sample_data(ps.Merged))
+sample_data(ps.Merged)$sample_id <- row_names
+lst <- strsplit(row_names,'-')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+v3 <- lapply(lst, `[`, 3)
+v4 <- paste(v2, v3, sep = "-")
+sample_data(ps.Merged)$pooltype <- v1
+sample_data(ps.Merged)$trap <- v4
+sample_data(ps.Merged)$trap[sample_data(ps.Merged)$trap == "Manure-NA"] <- "Manure-Manure"
+
+#-------------------------------------------------------#
+
+setClass("Family",
+         representation = representation(family_group = "character",
+                                         member_list = "list",
+                                         family_sum = "numeric"),
+         prototype = prototype(family_group = NA_character_,
+                               member_list = list(),
+                               family_sum = NA_real_))
+
+setClass("FamilyMember", 
+         representation = representation(family_group = "character",
+                                         name = "character",
+                                         sample_designation = "character",
+                                         sample_sum = "numeric",
+                                         ASV_counts = "data.frame"),
+         prototype = prototype(family_group = NA_character_,
+                               name = NA_character_,
+                               sample_designation = NA_character_,
+                               sample_sum = NA_real_))
+
+#-------------------------------------------------------#
+
+CountASVs <- function(sampleName, abundanceTable) {
+  sampleAbundance <- abundanceTable %>%
+    dplyr::select(sampleName) %>%
+    rownames_to_column(var = "ASV")
+  sampleAbundanceDF <- filter(sampleAbundance, sampleAbundance[, sampleName] > 0)
+  return(sampleAbundanceDF)
+}
+
+#-------------------------------------------------------#
+
+GetSampleSum <- function(sampleName, physeqObject) {
+  named_sum <- sample_sums(physeqObject)[sampleName]
+  numeric_sum <- unname(named_sum)
+}
+
+#-------------------------------------------------------#
+
+sampleData <- data.frame(sample_data(ps.Merged))
+sampleData$sampling.date <- unlist(sampleData$trap)
+sampleData$pooltype <- unlist(sampleData$pooltype)
+
+abdTable <- as.matrix(otu_table(ps.Merged))
+if (!taxa_are_rows(abdTable)) {
+  abdTable <- t(abdTable)
+}
+abdTable <- as.data.frame(abdTable)
+
+familyClassList <- list()
+
+for (i in 1:140) {
+  currentFamilyGroup <- sampleData[i, "trap"]
+  familyNames <- names(familyClassList)
+  if (!(currentFamilyGroup %in% familyNames)){
+    members <- sampleData %>%
+      filter(trap == currentFamilyGroup) %>%
+      dplyr::select(as.vector("sample_id"))
+    memberList <- as.list(members$sample_id)
+    currentFamilyMembersList <- list()
+    for (sample in memberList) {
+      newMember <- new("FamilyMember",
+                       family_group = currentFamilyGroup,
+                       name = sample, 
+                       sample_designation = sampleData$pooltype[sampleData$sample_id == sample],
+                       sample_sum = GetSampleSum(sample, ps.Merged),
+                       ASV_counts = CountASVs(sample, abdTable))
+    currentFamilyMembersList[[sample]] <- newMember
+    }
+    totalSum <- 0
+    for (member in currentFamilyMembersList) {
+      sampleSum <- member@sample_sum
+      totalSum <- sum(totalSum, sampleSum)
+    }
+    newFamily <- new("Family", 
+                     family_group = currentFamilyGroup,
+                     member_list = currentFamilyMembersList,
+                     family_sum = totalSum)
+    familyClassList[[currentFamilyGroup]] <- newFamily
+  }
+}
+			  
+allF1ASVTables <- data.frame()
+
+for (k in 1:length(familyClassList)) {
+  family <- familyClassList[[k]]
+  familyMembers <- family@member_list
+  currentFly <- NULL
+  for (i in 1:length(familyMembers)) {
+      currentFly <- c(currentFly,familyMembers[[i]])
+    	}
+  currentF1List <- list(currentFly)
+  currentF1List <- plyr::compact(currentF1List)
+  for (i in 1:length(currentF1List[[1]])) {
+    current_F1 <- currentF1List[[1]][[i]]
+    F1Designation <- current_F1@sample_designation
+    F1Identifier <- paste(family@family_group, F1Designation, sep = "/")
+	Manure_ASV_counts = CountASVs("Manure-Manure", abdTable)
+    F1Table <- merge(current_F1@ASV_counts,
+                         Manure_ASV_counts,
+                         by = "ASV", all = TRUE)
+      currentColName <- names(F1Table)[2]
+      setnames(F1Table, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
+    F1Table <- F1Table[!(is.na(F1Table[[F1Designation]])), ]
+    F1Table$shared <- ifelse(!(is.na(F1Table$"Manure-Manure")), yes = TRUE, no = FALSE)
+    F1Table$sample <- F1Identifier
+    setnames(F1Table, old = F1Designation, new = "read_count")
+    F1Sum <- sum(F1Table$read_count)
+    F1SharedSum <- sum(F1Table$read_count[F1Table$shared == TRUE])
+    F1NotSharedSum <- sum(F1Table$read_count[F1Table$shared == FALSE])
+    F1TablePercentages <- F1Table %>%
+      mutate("F1_percent" = read_count/F1Sum) %>%
+      dplyr::select(-c("Manure-Manure"))
+    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
+  }
+}
+
+F1PerspectiveRA <- allF1ASVTables
+array <- unlist(strsplit(F1PerspectiveRA$sample, "[/]"))
+trap <- array[c(TRUE, FALSE)]
+F1PerspectiveRA$trap <- trap
+
+F1PerspectiveRA.1 <- F1PerspectiveRA %>%
+  group_by(trap, sample, shared) %>%
+  summarise(tot_shared_reads = sum(read_count))
+  
+F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
+  group_by(sample) %>%
+  summarise(tot_reads = sum(tot_shared_reads))
+
+F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
+F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
+F1PerspectiveRA.3$source <- ifelse(str_detect(F1PerspectiveRA.3$sample,"Endo"), "Endo", "Ecto")
+F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]		 
+
+data.endo <- F1PerspectiveRA.3[F1PerspectiveRA.3$source=="Endo",]
+data_summary <- aggregate(percent ~ as.factor(trap), data.endo,
+                          function(x) c(mean = mean(x),
+                                        se = sd(x) / sqrt(length(x))))
+data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
+data_summary$ci <- 1.96*data_summary$se
+data_summary$group <- factor(data_summary$group, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
+ggplot(data_summary) +
+    geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
+    geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
+    ylim(0,1)
+
+data.ecto <- F1PerspectiveRA.3[F1PerspectiveRA.3$source=="Ecto",]
+data_summary <- aggregate(percent ~ as.factor(trap), data.ecto,
+                          function(x) c(mean = mean(x),
+                                        se = sd(x) / sqrt(length(x))))
+data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
+data_summary$ci <- 1.96*data_summary$se
+data_summary$group <- factor(data_summary$group, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
+ggplot(data_summary) +
+    geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
+    geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
+    ylim(0,1)
+			  
 #### Goal: Identify ASVs that are commonly shared between fly and manure samples collected from the same facility (Fig. 6) ####
 			  
 ps.Merged.manure <- subset_taxa(ps.Merged,otu_table(ps.Merged)["Manure-Manure",]>0)
@@ -451,22 +890,22 @@ myColors <- c("#edf3f7", "#d2e2ef", "#9fc1dc", "#4292c6", "#2171b5", "#fee6ce", 
               "#7f2704", "#f1efe1", "#e9e9e7", "#d4d4d4", "#bababa", "#878787")
 names(myColors) <- ASVNames
 
-#Manure
+# Manure
 ggplot(otus, aes(fill=ASV, y=Manure, x="")) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 				     
-#Ecto
+# Ecto
 ggplot(otus, aes(fill=ASV, y=Ecto, x="")) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 				     
-#Endo
+# Endo
 ggplot(otus, aes(fill=ASV, y=Ecto, x="")) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 
-#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling dates (Fig. S11) ####
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling dates (Fig. S13) ####
 
 sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$sampling.date, sep = "-")
 ps.arlington <- subset_samples(ps, location=="Arlington")
@@ -645,7 +1084,7 @@ F1PerspectivePlot <- ggplot(allF1ASVTables,
 scale_fill_manual(name = "ASV", values = myColors)
 F1PerspectivePlot
 
-#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling locations (Fig. S13) ####
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling locations (Fig. S14) ####
 
 sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$trap, sep = "-")
 ps.arlington <- subset_samples(ps, location=="Arlington")
@@ -820,7 +1259,6 @@ F1PerspectivePlot
 				     
 #### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not) (Fig. 5C) ####
 
-ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
 sample_data(ps)$merge_factor <- c("Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","ArlM1-7.9.21","ArlM10-7.16.21","ArlM11-7.23.21","ArlM12-7.23.21","ArlM13-7.23.21","ArlM14-7.23.21","ArlM15-7.23.21","ArlM16-7.30.21","ArlM17-7.30.21","ArlM18-7.30.21","ArlM19-7.30.21","ArlM2-7.9.21","ArlM20-7.30.21","ArlM21-7.30.21","ArlM22-8.6.21","ArlM23-8.6.21","ArlM24-8.6.21","ArlM25-8.6.21","ArlM26-8.6.21","ArlM27-8.6.21","ArlM28-8.13.21","ArlM29-8.13.21","ArlM3-7.9.21","ArlM30-8.13.21","ArlM31-8.13.21","ArlM32-8.13.21","ArlM33-8.13.21","ArlM34-8.20.21","ArlM35-8.20.21","ArlM36-8.20.21","ArlM37-8.20.21","ArlM38-8.20.21","ArlM39-8.20.21","ArlM4-7.9.21","ArlM40-8.27.21","ArlM41-8.27.21","ArlM42-8.27.21","ArlM43-8.27.21","ArlM44-8.27.21","ArlM45-8.27.21","ArlM46-9.10.21","ArlM47-9.10.21","ArlM48-9.10.21","ArlM49-9.10.21","ArlM5-7.9.21","ArlM50-9.10.21","ArlM51-9.10.21","ArlM6-7.16.21","ArlM7-7.16.21","ArlM8-7.16.21","ArlM9-7.16.21","DCCM100-9.15.21","DCCM101-9.15.21","DCCM102-7.8.21","DCCM103-7.8.21","DCCM104-7.8.21","DCCM105-7.8.21","DCCM106-7.8.21","DCCM52-7.15.21","DCCM53-7.15.21","DCCM54-7.15.21","DCCM55-7.15.21","DCCM56-7.15.21","DCCM57-7.22.21","DCCM58-7.22.21","DCCM59-7.22.21","DCCM60-7.22.21","DCCM61-7.22.21","DCCM62-7.29.21","DCCM63-7.29.21","DCCM64-7.29.21","DCCM65-7.29.21","DCCM66-7.29.21","DCCM67-8.5.21","DCCM68-8.5.21","DCCM69-8.5.21","DCCM70-8.5.21","DCCM71-8.5.21","DCCM72-8.12.21","DCCM73-8.12.21","DCCM74-8.12.21","DCCM75-8.12.21","DCCM76-8.12.21","DCCM77-8.19.21","DCCM78-8.19.21","DCCM79-8.19.21","DCCM80-8.19.21","DCCM81-8.19.21","DCCM82-8.26.21","DCCM83-8.26.21","DCCM84-8.26.21","DCCM85-8.26.21","DCCM86-8.26.21","DCCM87-9.2.21","DCCM88-9.2.21","DCCM89-9.2.21","DCCM90-9.2.21","DCCM91-9.2.21","DCCM92-9.9.21","DCCM93-9.9.21","DCCM94-9.9.21","DCCM95-9.9.21","DCCM96-9.9.21","DCCM97-9.15.21","DCCM98-9.15.21","DCCM99-9.15.21","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly")
 ps.arlington <- subset_samples(ps, location=="Arlington")
 ps.Merged <- merge_samples(ps.arlington,"merge_factor")
@@ -983,7 +1421,7 @@ ggplot(data=NULL) +
     geom_errorbar( aes(x="", ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 
-#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not), across different sampling dates (Fig. S10) ####
+#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not), across different sampling dates (Fig. S11) ####
 				     
 means <- aggregate(percent ~ date, data = F1PerspectiveRA.3, 
           FUN = function(x) c(mean = mean(x)))
@@ -996,6 +1434,194 @@ ggplot(summary, aes(x = date, y = percent.x)) +
     geom_errorbar(aes(ymin=percent.x-percent.y, ymax=percent.x+percent.y), width=.1) +
     geom_point()
 
+#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not), across different sampling locations (Fig. S12) ####
+
+sample_data(ps)$merge_factor <- c("Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly",
+				  "ArlM1-Arl-M1","ArlM10-Arl-M5","ArlM11-Arl-M1","ArlM12-Arl-M2","ArlM13-Arl-M3","ArlM14-Arl-M4","ArlM15-Arl-M5","ArlM16-Arl-M1","ArlM17-Arl-M2","ArlM18-Arl-M3","ArlM19-Arl-M4","ArlM2-Arl-M2","ArlM20-Arl-M5","ArlM21-Arl-sickpen",
+				  "ArlM22-Arl-M1","ArlM23-Arl-M2","ArlM24-Arl-M3","ArlM25-Arl-M4","ArlM26-Arl-M5","ArlM27-Arl-sickpen",
+				  "ArlM28-Arl-M1","ArlM29-Arl-M2","ArlM3-Arl-M3","ArlM30-Arl-M3","ArlM31-Arl-M4","ArlM32-Arl-M5","ArlM33-Arl-sickpen",
+				  "ArlM34-Arl-M1","ArlM35-Arl-M2","ArlM36-Arl-M3","ArlM37-Arl-M4","ArlM38-Arl-M5","ArlM39-Arl-sickpen",
+				  "ArlM4-Arl-M4","ArlM40-Arl-M1","ArlM41-Arl-M2","ArlM42-Arl-M3","ArlM43-Arl-M4","ArlM44-Arl-M5","ArlM45-Arl-sickpen",
+				  "ArlM46-Arl-M1","ArlM47-Arl-M2","ArlM48-Arl-M3","ArlM49-Arl-M4","ArlM5-Arl-M5","ArlM50-Arl-M5","ArlM51-Arl-sickpen",
+				  "ArlM6-Arl-M1","ArlM7-Arl-M2","ArlM8-Arl-M3","ArlM9-Arl-M4",
+				  "DCCM100-DCC-Q4","DCCM101-DCC-Outdoor",
+				  "DCCM102-DCC-Q1","DCCM103-DCC-Q2","DCCM104-DCC-Q3","DCCM105-DCC-Q4","DCCM106-DCC-Outdoor",
+				  "DCCM52-DCC-Q1","DCCM53-DCC-Q2","DCCM54-DCC-Q3","DCCM55-DCC-Q4","DCCM56-DCC-Outdoor",
+				  "DCCM57-DCC-Q1","DCCM58-DCC-Q2","DCCM59-DCC-Q3","DCCM60-DCC-Q4","DCCM61-DCC-Outdoor",
+				  "DCCM62-DCC-Q1","DCCM63-DCC-Q2","DCCM64-DCC-Q3","DCCM65-DCC-Q4","DCCM66-DCC-Outdoor",
+				  "DCCM67-DCC-Q1","DCCM68-DCC-Q2","DCCM69-DCC-Q3","DCCM70-DCC-Q4","DCCM71-DCC-Outdoor",
+				  "DCCM72-DCC-Q1","DCCM73-DCC-Q2","DCCM74-DCC-Q3","DCCM75-DCC-Q4","DCCM76-DCC-Outdoor",
+				  "DCCM77-DCC-Q1","DCCM78-DCC-Q2","DCCM79-DCC-Q3","DCCM80-DCC-Q4","DCCM81-DCC-Outdoor",
+				  "DCCM82-DCC-Q1","DCCM83-DCC-Q2","DCCM84-DCC-Q3","DCCM85-DCC-Q4","DCCM86-DCC-Outdoor",
+				  "DCCM87-DCC-Q1","DCCM88-DCC-Q2","DCCM89-DCC-Q3","DCCM90-DCC-Q4","DCCM91-DCC-Outdoor",
+				  "DCCM92-DCC-Q1","DCCM93-DCC-Q2","DCCM94-DCC-Q3","DCCM95-DCC-Q4","DCCM96-DCC-Outdoor",
+				  "DCCM97-DCC-Q1","DCCM98-DCC-Q2","DCCM99-DCC-Q3",
+				  "Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly")
+ps.arlington <- subset_samples(ps, location=="Arlington")
+ps.Merged <- merge_samples(ps.arlington,"merge_factor")
+row_names <- row.names(sample_data(ps.Merged))
+sample_data(ps.Merged)$sample_id <- row_names
+lst <- strsplit(row_names,'-')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+v3 <- lapply(lst, `[`, 3)
+v4 <- paste(v2, v3, sep = "-")
+sample_data(ps.Merged)$pooltype <- v1
+sample_data(ps.Merged)$trap <- v4
+sample_data(ps.Merged)$trap[sample_data(ps.Merged)$trap == "Fly-NA"] <- "Fly-Fly"
+
+#-------------------------------------------------------#
+
+setClass("Family",
+         representation = representation(family_group = "character",
+                                         member_list = "list",
+                                         family_sum = "numeric"),
+         prototype = prototype(family_group = NA_character_,
+                               member_list = list(),
+                               family_sum = NA_real_))
+
+setClass("FamilyMember", 
+         representation = representation(family_group = "character",
+                                         name = "character",
+                                         sample_designation = "character",
+                                         sample_sum = "numeric",
+                                         ASV_counts = "data.frame"),
+         prototype = prototype(family_group = NA_character_,
+                               name = NA_character_,
+                               sample_designation = NA_character_,
+                               sample_sum = NA_real_))
+
+#-------------------------------------------------------#
+
+CountASVs <- function(sampleName, abundanceTable) {
+  sampleAbundance <- abundanceTable %>%
+    dplyr::select(sampleName) %>%
+    rownames_to_column(var = "ASV")
+  sampleAbundanceDF <- filter(sampleAbundance, sampleAbundance[, sampleName] > 0)
+  return(sampleAbundanceDF)
+}
+
+#-------------------------------------------------------#
+
+GetSampleSum <- function(sampleName, physeqObject) {
+  named_sum <- sample_sums(physeqObject)[sampleName]
+  numeric_sum <- unname(named_sum)
+}
+
+#-------------------------------------------------------#
+
+sampleData <- data.frame(sample_data(ps.Merged))
+sampleData$trap <- unlist(sampleData$trap)
+sampleData$pooltype <- unlist(sampleData$pooltype)
+
+abdTable <- as.matrix(otu_table(ps.Merged))
+if (!taxa_are_rows(abdTable)) {
+  abdTable <- t(abdTable)
+}
+abdTable <- as.data.frame(abdTable)
+
+familyClassList <- list()
+
+for (i in 1:51) {
+  currentFamilyGroup <- sampleData[i, "trap"]
+  familyNames <- names(familyClassList)
+  if (!(currentFamilyGroup %in% familyNames)){
+    members <- sampleData %>%
+      filter(trap == currentFamilyGroup) %>%
+      dplyr::select(as.vector("sample_id"))
+    memberList <- as.list(members$sample_id)
+    currentFamilyMembersList <- list()
+    for (sample in memberList) {
+      newMember <- new("FamilyMember",
+                       family_group = currentFamilyGroup,
+                       name = sample, 
+                       sample_designation = sampleData$pooltype[sampleData$sample_id == sample],
+                       sample_sum = GetSampleSum(sample, ps.Merged),
+                       ASV_counts = CountASVs(sample, abdTable))
+    currentFamilyMembersList[[sample]] <- newMember
+    }
+    totalSum <- 0
+    for (member in currentFamilyMembersList) {
+      sampleSum <- member@sample_sum
+      totalSum <- sum(totalSum, sampleSum)
+    }
+    newFamily <- new("Family", 
+                     family_group = currentFamilyGroup,
+                     member_list = currentFamilyMembersList,
+                     family_sum = totalSum)
+    familyClassList[[currentFamilyGroup]] <- newFamily
+  }
+}
+
+#----- Determine which family groups are valid -----# 
+
+validFamilies <- familyClassList
+
+#----- Populate Table for Plotting Infants -----#
+
+allF1ASVTables <- data.frame()
+
+for (k in 1:length(validFamilies)) {
+  family <- validFamilies[[k]]
+  familyMembers <- family@member_list
+  currentManure <- NULL
+  for (i in 1:length(familyMembers)) {
+      currentManure <- c(currentManure,familyMembers[[i]])
+    	}
+  currentF1List <- list(currentManure)
+  currentF1List <- plyr::compact(currentF1List) 
+  for (i in 1:length(currentF1List[[1]])) {
+    current_F1 <- currentF1List[[1]][[i]]
+    F1Designation <- current_F1@sample_designation
+    F1Identifier <- paste(family@family_group, F1Designation, sep = "/")
+	Fly_ASV_counts = CountASVs("Fly-Fly", abdTable)
+    F1Table <- merge(current_F1@ASV_counts,
+                         Fly_ASV_counts,
+                         by = "ASV", all = TRUE)
+      currentColName <- names(F1Table)[2]
+      setnames(F1Table, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
+    F1Table <- F1Table[!(is.na(F1Table[[F1Designation]])), ]
+    F1Table$shared <- ifelse(!(is.na(F1Table$"Fly-Fly")), yes = TRUE, no = FALSE)
+    F1Table$sample <- F1Identifier
+    setnames(F1Table, old = F1Designation, new = "read_count")
+    F1Sum <- sum(F1Table$read_count)
+    F1SharedSum <- sum(F1Table$read_count[F1Table$shared == TRUE])
+    F1NotSharedSum <- sum(F1Table$read_count[F1Table$shared == FALSE])
+    F1TablePercentages <- F1Table %>%
+      mutate("F1_percent" = read_count/F1Sum) %>%
+      dplyr::select(-c("Fly-Fly"))
+    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
+  }
+}
+
+F1PerspectiveRA <- allF1ASVTables
+array <- unlist(strsplit(F1PerspectiveRA$sample, "[/]"))
+trap <- array[c(TRUE, FALSE)]
+F1PerspectiveRA$trap <- trap
+
+F1PerspectiveRA.1 <- F1PerspectiveRA %>%
+  group_by(trap, sample, shared) %>%
+  summarise(tot_shared_reads = sum(read_count))
+  
+F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
+  group_by(sample) %>%
+  summarise(tot_reads = sum(tot_shared_reads))
+
+F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
+F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
+F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]		 
+
+data_summary <- aggregate(percent ~ as.factor(trap), F1PerspectiveRA.3,
+                          function(x) c(mean = mean(x),
+                                        se = sd(x) / sqrt(length(x))))
+data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
+data_summary$ci <- 1.96*data_summary$se
+data_summary$group <- factor(data_summary$group, levels=c("Arl-M1", "Arl-M2", "Arl-M3", "Arl-M4", "Arl-M5", "Arl-sickpen"))
+ggplot(data_summary) +
+    geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
+    geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
+    ylim(0,1)
+			  
 #### Note: The below code is specific to DCC-derived samples ####
 
 # Read in phyloseq object, ensure data format is consistent across sample metadata
@@ -1345,7 +1971,7 @@ ggplot(otus, aes(fill=ASV, y=Ecto, x="")) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_manual(name = "ASV", values = myColors)
 
-#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling dates (Fig. S12) ####
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling dates (Fig. S15) ####
 
 sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$sampling.date, sep = "-")
 ps.dcc <- subset_samples(ps, location=="DCC")
@@ -1520,7 +2146,7 @@ scale_fill_manual(name = "ASV", values = myColors)
 
 F1PerspectivePlot
 
-#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling locations (Fig. S14) ####
+#### Goal: Plot relative abundance of commonly shared ASVs in internal/external fly vs. manure samples collected from the same facility, across different sampling locations (Fig. S16) ####
 				     
 sample_data(ps)$merge_factor <- paste(sample_data(ps)$sample.type,sample_data(ps)$trap, sep = "-")
 ps.dcc <- subset_samples(ps, location=="DCC" & sample.type=="Manure")
@@ -1852,7 +2478,7 @@ ggplot(data=NULL) +
     geom_errorbar( aes(x="", ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 				     
-#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not), across different sampling dates (Fig. S10) ####
+#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not), across different sampling dates (Fig. S11) ####
 
 means <- aggregate(percent ~ date, data = F1PerspectiveRA.3, 
           FUN = function(x) c(mean = mean(x)))
@@ -1864,16 +2490,190 @@ ggplot(summary, aes(x = date, y = percent.x)) + #Fig. S10
     geom_errorbar(aes(ymin=percent.x-percent.y, ymax=percent.x+percent.y), width=.1) +
     geom_point()
 
+#### Goal: Calculate relative abundance of manure-associated taxa that are shared with flies collected from the same facility (or not), across different sampling locations (Fig. S12) ####
 
+sample_data(ps)$merge_factor <- c("Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly",
+				  "ArlM1-Arl-M1","ArlM10-Arl-M5","ArlM11-Arl-M1","ArlM12-Arl-M2","ArlM13-Arl-M3","ArlM14-Arl-M4","ArlM15-Arl-M5","ArlM16-Arl-M1","ArlM17-Arl-M2","ArlM18-Arl-M3","ArlM19-Arl-M4","ArlM2-Arl-M2","ArlM20-Arl-M5","ArlM21-Arl-sickpen",
+				  "ArlM22-Arl-M1","ArlM23-Arl-M2","ArlM24-Arl-M3","ArlM25-Arl-M4","ArlM26-Arl-M5","ArlM27-Arl-sickpen",
+				  "ArlM28-Arl-M1","ArlM29-Arl-M2","ArlM3-Arl-M3","ArlM30-Arl-M3","ArlM31-Arl-M4","ArlM32-Arl-M5","ArlM33-Arl-sickpen",
+				  "ArlM34-Arl-M1","ArlM35-Arl-M2","ArlM36-Arl-M3","ArlM37-Arl-M4","ArlM38-Arl-M5","ArlM39-Arl-sickpen",
+				  "ArlM4-Arl-M4","ArlM40-Arl-M1","ArlM41-Arl-M2","ArlM42-Arl-M3","ArlM43-Arl-M4","ArlM44-Arl-M5","ArlM45-Arl-sickpen",
+				  "ArlM46-Arl-M1","ArlM47-Arl-M2","ArlM48-Arl-M3","ArlM49-Arl-M4","ArlM5-Arl-M5","ArlM50-Arl-M5","ArlM51-Arl-sickpen",
+				  "ArlM6-Arl-M1","ArlM7-Arl-M2","ArlM8-Arl-M3","ArlM9-Arl-M4",
+				  "DCCM100-DCC-Q4","DCCM101-DCC-Outdoor",
+				  "DCCM102-DCC-Q1","DCCM103-DCC-Q2","DCCM104-DCC-Q3","DCCM105-DCC-Q4","DCCM106-DCC-Outdoor",
+				  "DCCM52-DCC-Q1","DCCM53-DCC-Q2","DCCM54-DCC-Q3","DCCM55-DCC-Q4","DCCM56-DCC-Outdoor",
+				  "DCCM57-DCC-Q1","DCCM58-DCC-Q2","DCCM59-DCC-Q3","DCCM60-DCC-Q4","DCCM61-DCC-Outdoor",
+				  "DCCM62-DCC-Q1","DCCM63-DCC-Q2","DCCM64-DCC-Q3","DCCM65-DCC-Q4","DCCM66-DCC-Outdoor",
+				  "DCCM67-DCC-Q1","DCCM68-DCC-Q2","DCCM69-DCC-Q3","DCCM70-DCC-Q4","DCCM71-DCC-Outdoor",
+				  "DCCM72-DCC-Q1","DCCM73-DCC-Q2","DCCM74-DCC-Q3","DCCM75-DCC-Q4","DCCM76-DCC-Outdoor",
+				  "DCCM77-DCC-Q1","DCCM78-DCC-Q2","DCCM79-DCC-Q3","DCCM80-DCC-Q4","DCCM81-DCC-Outdoor",
+				  "DCCM82-DCC-Q1","DCCM83-DCC-Q2","DCCM84-DCC-Q3","DCCM85-DCC-Q4","DCCM86-DCC-Outdoor",
+				  "DCCM87-DCC-Q1","DCCM88-DCC-Q2","DCCM89-DCC-Q3","DCCM90-DCC-Q4","DCCM91-DCC-Outdoor",
+				  "DCCM92-DCC-Q1","DCCM93-DCC-Q2","DCCM94-DCC-Q3","DCCM95-DCC-Q4","DCCM96-DCC-Outdoor",
+				  "DCCM97-DCC-Q1","DCCM98-DCC-Q2","DCCM99-DCC-Q3",
+				  "Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly","Fly-Fly")
+ps.dcc <- subset_samples(ps, location=="DCC")
+ps.Merged <- merge_samples(ps.dcc,"merge_factor")
+row_names <- row.names(sample_data(ps.Merged))
+sample_data(ps.Merged)$sample_id <- row_names
+lst <- strsplit(row_names,'-')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+v3 <- lapply(lst, `[`, 3)
+v4 <- paste(v2, v3, sep = "-")
+sample_data(ps.Merged)$pooltype <- v1
+sample_data(ps.Merged)$trap <- v4
+sample_data(ps.Merged)$trap[sample_data(ps.Merged)$trap == "Fly-NA"] <- "Fly-Fly"
 
+#-------------------------------------------------------#
 
+setClass("Family",
+         representation = representation(family_group = "character",
+                                         member_list = "list",
+                                         family_sum = "numeric"),
+         prototype = prototype(family_group = NA_character_,
+                               member_list = list(),
+                               family_sum = NA_real_))
 
+setClass("FamilyMember", 
+         representation = representation(family_group = "character",
+                                         name = "character",
+                                         sample_designation = "character",
+                                         sample_sum = "numeric",
+                                         ASV_counts = "data.frame"),
+         prototype = prototype(family_group = NA_character_,
+                               name = NA_character_,
+                               sample_designation = NA_character_,
+                               sample_sum = NA_real_))
 
+#-------------------------------------------------------#
 
+CountASVs <- function(sampleName, abundanceTable) {
+  sampleAbundance <- abundanceTable %>%
+    dplyr::select(sampleName) %>%
+    rownames_to_column(var = "ASV")
+  sampleAbundanceDF <- filter(sampleAbundance, sampleAbundance[, sampleName] > 0)
+  return(sampleAbundanceDF)
+}
 
+#-------------------------------------------------------#
 
+GetSampleSum <- function(sampleName, physeqObject) {
+  named_sum <- sample_sums(physeqObject)[sampleName]
+  numeric_sum <- unname(named_sum)
+}
 
+#-------------------------------------------------------#
 
+sampleData <- data.frame(sample_data(ps.Merged))
+sampleData$trap <- unlist(sampleData$trap)
+sampleData$pooltype <- unlist(sampleData$pooltype)
 
+abdTable <- as.matrix(otu_table(ps.Merged))
+if (!taxa_are_rows(abdTable)) {
+  abdTable <- t(abdTable)
+}
+abdTable <- as.data.frame(abdTable)
 
-		 
+familyClassList <- list()
+
+for (i in 1:51) {
+  currentFamilyGroup <- sampleData[i, "trap"]
+  familyNames <- names(familyClassList)
+  if (!(currentFamilyGroup %in% familyNames)){
+    members <- sampleData %>%
+      filter(trap == currentFamilyGroup) %>%
+      dplyr::select(as.vector("sample_id"))
+    memberList <- as.list(members$sample_id)
+    currentFamilyMembersList <- list()
+    for (sample in memberList) {
+      newMember <- new("FamilyMember",
+                       family_group = currentFamilyGroup,
+                       name = sample, 
+                       sample_designation = sampleData$pooltype[sampleData$sample_id == sample],
+                       sample_sum = GetSampleSum(sample, ps.Merged),
+                       ASV_counts = CountASVs(sample, abdTable))
+    currentFamilyMembersList[[sample]] <- newMember
+    }
+    totalSum <- 0
+    for (member in currentFamilyMembersList) {
+      sampleSum <- member@sample_sum
+      totalSum <- sum(totalSum, sampleSum)
+    }
+    newFamily <- new("Family", 
+                     family_group = currentFamilyGroup,
+                     member_list = currentFamilyMembersList,
+                     family_sum = totalSum)
+    familyClassList[[currentFamilyGroup]] <- newFamily
+  }
+}
+
+#----- Determine which family groups are valid -----# 
+
+validFamilies <- familyClassList
+
+#----- Populate Table for Plotting Infants -----#
+
+allF1ASVTables <- data.frame()
+
+for (k in 1:length(validFamilies)) {
+  family <- validFamilies[[k]]
+  familyMembers <- family@member_list
+  currentManure <- NULL
+  for (i in 1:length(familyMembers)) {
+      currentManure <- c(currentManure,familyMembers[[i]])
+    	}
+  currentF1List <- list(currentManure)
+  currentF1List <- plyr::compact(currentF1List) 
+  for (i in 1:length(currentF1List[[1]])) {
+    current_F1 <- currentF1List[[1]][[i]]
+    F1Designation <- current_F1@sample_designation
+    F1Identifier <- paste(family@family_group, F1Designation, sep = "/")
+	Fly_ASV_counts = CountASVs("Fly-Fly", abdTable)
+    F1Table <- merge(current_F1@ASV_counts,
+                         Fly_ASV_counts,
+                         by = "ASV", all = TRUE)
+      currentColName <- names(F1Table)[2]
+      setnames(F1Table, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
+    F1Table <- F1Table[!(is.na(F1Table[[F1Designation]])), ]
+    F1Table$shared <- ifelse(!(is.na(F1Table$"Fly-Fly")), yes = TRUE, no = FALSE)
+    F1Table$sample <- F1Identifier
+    setnames(F1Table, old = F1Designation, new = "read_count")
+    F1Sum <- sum(F1Table$read_count)
+    F1SharedSum <- sum(F1Table$read_count[F1Table$shared == TRUE])
+    F1NotSharedSum <- sum(F1Table$read_count[F1Table$shared == FALSE])
+    F1TablePercentages <- F1Table %>%
+      mutate("F1_percent" = read_count/F1Sum) %>%
+      dplyr::select(-c("Fly-Fly"))
+    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
+  }
+}
+
+F1PerspectiveRA <- allF1ASVTables
+array <- unlist(strsplit(F1PerspectiveRA$sample, "[/]"))
+trap <- array[c(TRUE, FALSE)]
+F1PerspectiveRA$trap <- trap
+
+F1PerspectiveRA.1 <- F1PerspectiveRA %>%
+  group_by(trap, sample, shared) %>%
+  summarise(tot_shared_reads = sum(read_count))
+  
+F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
+  group_by(sample) %>%
+  summarise(tot_reads = sum(tot_shared_reads))
+
+F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
+F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
+F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]		 
+
+data_summary <- aggregate(percent ~ as.factor(trap), F1PerspectiveRA.3,
+                          function(x) c(mean = mean(x),
+                                        se = sd(x) / sqrt(length(x))))
+data_summary <- data.frame(group = data_summary[,1], data_summary[,2])
+data_summary$ci <- 1.96*data_summary$se
+data_summary$group <- factor(data_summary$group, levels=c("DCC-Q1", "DCC-Q2", "DCC-Q3", "DCC-Q4", "DCC-Outdoor"))
+ggplot(data_summary) +
+    geom_bar( aes(x=group, y=mean), stat="identity", fill="skyblue", alpha=0.7) +
+    geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
+    ylim(0,1)

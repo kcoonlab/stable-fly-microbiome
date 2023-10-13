@@ -283,6 +283,7 @@ F1SharedOTUs <- subset(F1SharedOTUs, select = c(date,sample,number_of_ASVs, samp
 F1SharedOTUs$sample.type <- factor(F1SharedOTUs$sample.type, levels=c("Endo", "Ecto"))
 F1SharedOTUs$trap <- c("B2-West","B1-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B1-East","B1-West","B2-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B2-East","B1-East","B1-East","B1-East","B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East")
 F1SharedOTUs$trap <- factor(F1SharedOTUs$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
+F1SharedOTUs.arlington <- F1SharedOTUs
 
 kruskal.test(number_of_ASVs~as.factor(sample.type),data=F1SharedOTUs) #Significant (p < 0.0001)
 
@@ -317,7 +318,8 @@ F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "s
 F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
 F1PerspectiveRA.3$source <- ifelse(str_detect(F1PerspectiveRA.3$sample,"Endo"), "Endo", "Ecto")
 F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]		 
-		
+F1SharedPercent.arlington <- F1PerspectiveRA.3
+		 
 kruskal.test(percent~as.factor(source),data=F1PerspectiveRA.3) #P = 0.04602
 kruskal.test(percent~as.factor(date),data=F1PerspectiveRA.3) #P = 0.01786
 pairwise.wilcox.test(F1PerspectiveRA.3$percent, as.factor(F1PerspectiveRA.3$date),
@@ -1404,6 +1406,7 @@ F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
 F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
 F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
 F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]	
+ManureSharedPercent.arlington <- F1PerspectiveRA.3
 				     
 kruskal.test(percent~as.factor(date),data=F1PerspectiveRA.3) #NS (p = 1)
 
@@ -1807,6 +1810,8 @@ F1SharedOTUs <- F1PerspectiveRichness.1
 F1SharedOTUs <- filter(F1SharedOTUs, shared == TRUE)
 F1SharedOTUs <- subset(F1SharedOTUs, select = c(date,sample,number_of_ASVs, sample.type))
 F1SharedOTUs$sample.type <- factor(F1SharedOTUs$sample.type, levels=c("Endo", "Ecto"))
+F1SharedOTUs.dcc <- F1SharedOTUs
+			  
 kruskal.test(number_of_ASVs~as.factor(sample.type),data=F1SharedOTUs) #NS (P = 0.6703)
 		 
 means <- aggregate(number_of_ASVs ~ sample.type, data = F1SharedOTUs, 
@@ -1841,6 +1846,7 @@ F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "s
 F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
 F1PerspectiveRA.3$source <- ifelse(str_detect(F1PerspectiveRA.3$sample,"Endo"), "Endo", "Ecto")
 F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]
+F1SharedPercent.dcc <- F1PerspectiveRA.3
 
 kruskal.test(percent~as.factor(source),data=F1PerspectiveRA.3) #NS (P = 0.8318)
 kruskal.test(percent~as.factor(date),data=F1PerspectiveRA.3) #NS (P = 0.7132)
@@ -2457,7 +2463,8 @@ F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
 F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
 F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
 F1PerspectiveRA.3 <- F1PerspectiveRA.3[F1PerspectiveRA.3$shared == "TRUE",]	
-
+ManureSharedPercent.dcc <- F1PerspectiveRA.3
+				     
 kruskal.test(percent~as.factor(date),data=F1PerspectiveRA.3) #NS (P = 0.4213)
 
 mean <- mean(F1PerspectiveRA.3$percent)

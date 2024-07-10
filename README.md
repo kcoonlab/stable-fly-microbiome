@@ -2,7 +2,7 @@ Repository for Sommer, A. J., Kettner, J. E., & Coon, K. L. (2024). Stable flies
 
 Raw Illumina reads are available in the NCBI Sequence Read Archive under BioProject ID PRJNA1032128
 
-Information on sample information is available as part of supplemental file S1 in published manuscript
+Sample information is available as part of supplemental file S1 in published manuscript
 
 Files in this repository:
 

@@ -6,7 +6,10 @@ Information on sample information is available as part of supplemental file S1 i
 
 Files in this repository:
 
-StableFlyMicrobiome_Qiime2_AJS ---> script for sequence processing via Qiime2 
-StableFlyMicrobiome_PhyloseqQualityControl_AJS --> R Script to generate main phyloseq objeect
-ps_FieldWork2021_AJS_Final.RDS --> main phyloseq object used in analyses
-analysis-master.R, results1.R,results2.R  --> R Scripts used to generate figures from phyloseq object
+StableFlyMicrobiome_Qiime2_AJS -> script for sequence processing via Qiime2 
+
+StableFlyMicrobiome_PhyloseqQualityControl_AJS -> R Script to generate main phyloseq objeect
+
+ps_FieldWork2021_AJS_Final.RDS -> main phyloseq object used in analyses
+
+analysis-master.R, results1.R,results2.R  -> R Scripts used to generate figures from phyloseq object

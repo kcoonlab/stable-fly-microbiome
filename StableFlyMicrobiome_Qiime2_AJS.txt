@@ -1,0 +1,141 @@
+cd qiime2-fieldsamples
+conda activate qiime2-2022.2
+
+ 
+
+qiime tools import \
+  --type 'SampleData[PairedEndSequencesWithQuality]' \
+  --input-path FieldSamplesAJS \
+  --input-format CasavaOneEightSingleLanePerSampleDirFmt \
+  --output-path demux-paired-end.qza
+
+
+qiime demux summarize \
+  --i-data demux-paired-end.qza \
+  --o-visualization demux-paired-end.qzv
+
+qiime tools view demux-paired-end.qzv
+
+
+qiime dada2 denoise-paired \
+  --i-demultiplexed-seqs demux-paired-end.qza \
+  --p-trim-left-f 20 \
+  --p-trim-left-r 20 \
+  --p-trunc-len-f 251 \
+  --p-trunc-len-r 251 \
+  --o-table table.qza \
+  --o-representative-sequences rep-seqs.qza \
+  --o-denoising-stats denoising-stats.qza
+
+
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences rep-seqs.qza \
+  --o-alignment aligned-rep-seqs.qza \
+  --o-masked-alignment masked-aligned-rep-seqs.qza \
+  --o-tree unrooted-tree.qza \
+  --o-rooted-tree rooted-tree.qza
+
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny rooted-tree.qza \
+  --i-table table.qza \
+  --p-sampling-depth 1103 \
+  --m-metadata-file sample-metadata.tsv \
+  --output-dir core-metrics-results
+
+qiime feature-table summarize \
+  --i-table table.qza \
+  --o-visualization table.qzv \
+  --m-sample-metadata-file FieldSamplesMeta.tsv
+
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny rooted-tree.qza \
+  --i-table table.qza \
+  --p-sampling-depth 1000 \
+  --m-metadata-file FieldSamplesMeta.tsv \
+  --output-dir core-metrics-results
+
+
+qiime diversity alpha-rarefaction \
+  --i-table table.qza \
+  --i-phylogeny rooted-tree.qza \
+  --p-max-depth 8000 \
+  --m-metadata-file FieldSamplesMeta.tsv \
+  --o-visualization alpha-rarefaction.qzv
+
+
+# Extract reads from the classifier using Kozich primers
+qiime feature-classifier extract-reads \
+--i-sequences silva-138-99-seqs.qza \
+--p-f-primer GTGCCAGCMGCCGCGGTAA \
+--p-r-primer GGACTACHVGGGTWTCTAAT \
+--o-reads ref-seqs.qza
+
+# Train the classifier
+qiime feature-classifier fit-classifier-naive-bayes \
+--i-reference-reads ref-seqs.qza \
+--i-reference-taxonomy silva-138-99-tax.qza \
+--o-classifier classifier.qza
+
+qiime feature-classifier classify-sklearn \
+--i-classifier classifier.qza \
+--i-reads rep-seqs.qza \
+--o-classification taxonomy.qza
+
+qiime metadata tabulate \
+  --m-input-file taxonomy.qza \
+  --o-visualization taxonomy.qzv
+
+
+
+qiime taxa barplot \
+  --i-table table.qza \
+  --i-taxonomy taxonomy.qza \
+  --m-metadata-file FieldSamplesMeta.tsv \
+  --o-visualization taxa-bar-plots.qzv
+
+
+
+###Export to Otu table
+
+qiime tools export \
+  --input-path table.qza \
+  --output-path phyloseq 
+
+biom convert -i phyloseq/feature-table.biom -o phyloseq/otu_table.txt --to-tsv
+
+
+#Export unrooted tree
+qiime tools export --input-path unrooted-tree.qza --output-path phyloseq
+
+#Export Taxonomy
+qiime tools export --input-path taxonomy.qza --output-path phyloseq
+
+
+
+
+####Reimport data after cleaned in R
+
+qiime tools import \
+--type 'FeatureData[Taxonomy]' \
+--input-format HeaderlessTSVTaxonomyFormat \
+--input-path tax_final.txt \
+--output-path taxonomy_cleaned.qza
+
+qiime tools import \
+--input-path otu_biom_final.biom \
+--type 'FeatureTable[Frequency]' \
+--input-format BIOMV100Format \
+--output-path feature-table.qza
+
+qiime feature-table summarize \
+  --i-table feature-table.qza \
+  --o-visualization table.qzv \
+  --m-sample-metadata-file Meta-Final.tsv
+
+qiime taxa barplot \
+  --i-table feature-table.qza \
+  --i-taxonomy taxonomy_cleaned.qza \
+  --m-metadata-file Meta-Final.tsv \
+  --o-visualization taxa-bar-plots.qzv
+
+

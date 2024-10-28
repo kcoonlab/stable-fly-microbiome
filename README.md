@@ -47,10 +47,18 @@ Once the repository has been cloned (above), recreate each figure/table/data ana
 * Right panel (DCC samples) - Script: `Fig5.R`: run code from line `1` to `193`
 
 #### Miscellaneous data analyses
-* 
+* Script: `misc-analyses.R`: run code from line `1` to `XX`
 
 #### Supplementary information 
-* 
+* Fig. S1 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S2A - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S2B - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S2C - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S3 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S4A - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S4B - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S5 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S6 - Script: `supp-info.R`: run code from line `1` to `XX`
 
 ## Citation 
 Sommer AJ, Kettner JE, Coon KL. (2024). Microbiota composition associates with mosquito productivity outcomes in belowground larval habitats. mSphere 9(7):e0033624. https://doi.org/10.1128/msphere.00336-24.

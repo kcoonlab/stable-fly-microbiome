@@ -53,7 +53,7 @@ ps.norm = transform_sample_counts(ps, function(x) x / sum(x) )
 ps = ps.norm
 
 #### PCoA to compare communities in different sample types from each facility ####
-#### Arlington samples first ####
+## Arlington samples first
 
 # Create PCoA ordination
 ps.arlington <- subset_samples(ps, location=="Arlington")
@@ -73,7 +73,7 @@ p = p + theme(legend.text = element_text(size = 10))
 p$layers = p$layers[-1] #to remove the larger point coded in original plot
 p
 
-#### Now DCC samples
+## Now DCC samples
 
 # Create PCoA ordination
 ps.dcc <- subset_samples(ps, location=="DCC")

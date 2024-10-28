@@ -18,7 +18,7 @@ Scripts for each analysis are written in R. Each directory contains necessary fi
 	* `cmd enter` from line `1`.
 
 **Before getting started**
-* Run the script `phyloseq-object.R` (code from line `1` to `42`) to generate a phyloseq object from the appropriate qiime artifacts. This object will be referenced in some downstream analyses.
+* Run the script `phyloseq-object.R` (code from line `1` to `97`) to generate a phyloseq object from the appropriate qiime artifacts. This object will be referenced in some downstream analyses.
 
 **Acknowledgements**
 * Portions of the following scripts are based on code produced by Jaimie R. West and Thea Whitman at the University of Wisconsin-Madison (see https://github.com/jaimiewest/Soil-Mixing and https://doi.org/10.1093/femsec/fiac112 for more information).

@@ -1,24 +1,16 @@
 set.seed(123456)
 
+# Load required packages
+
+# if(!requireNamespace("BiocManager")){
+#   install.packages("BiocManager")
+# }
+# BiocManager::install("phyloseq")
+
 library(phyloseq)
 library(dplyr)
 library(tidyverse)
 library(data.table)
-
-
-library(plotly)
-library(microbiome)
-library(decontam)
-library(ggpubr)
-library(ggrepel)
-library(vegan)
-library(pheatmap)
-library(reshape2)
-library(scales)
-
-library(qpcR)
-library(RColorBrewer)
-library(gridExtra)
 
 #### Fig 5A (left, Arlington samples)
 

@@ -1,10 +1,7 @@
-#Set Directory to where I exported the qiime 2 phyloseq objects
-setwd("~/Documents/Research/Dissertation Work/2021 Field Season/Analysis/qiime2-fieldsamples/phyloseq")
 library(phyloseq)
 library(phytools)
 library(ggplot2)
 library(decontam)
-
 
 ####More pragmatic tree rooting upon import####
 
@@ -33,7 +30,6 @@ rootedTree = ape::root(unrooted_qiime_default, outgroup=new.outgroup, resolve.ro
 # the function below is the phyloseq function to make phylogenic tree
 phy_tree<-phyloseq::read_tree(rootedTree, errorIfNULL=FALSE)
 
-
 ####Reading in files####
 
 ##OTU File
@@ -54,7 +50,6 @@ tax_matrix<-as.matrix(tax_rows_fixed)
 # use the phyloseq function to read in a tax_table
 TAX_16S<-phyloseq::tax_table(tax_matrix, errorIfNULL=TRUE)
 
-
 ##Metadata File
 #Read in csv
 meta_csv<-read.csv("Field_Samples_Metadata.csv")
@@ -66,7 +61,6 @@ META_16S<-phyloseq::sample_data(meta_rows)
 #Link together the objects to make one phyloseq object, then save it
 seq_object<-phyloseq(OTU_16S,TAX_16S,META_16S,phy_tree)
 #saveRDS(seq_object,"phyloseqlinkedobjects2021Field.RDS")
-
 
 ####Decontamination of Data####
 
@@ -85,7 +79,6 @@ contamdf.prev05 <- decontam::isContaminant(seq_object, method="prevalence", neg=
 prevalence<-contamdf.prev05[which(contamdf.prev05$contaminant=='TRUE'),]
 ps.noncontam <- prune_taxa(!contamdf.prev05$contaminant, seq_object) #list of all reads which meet the threshold value of 0.5 
 
-
 ##Decontamination by frequency
 contamdf.freq <- decontam::isContaminant(ps.noncontam, method="frequency", conc="extraction.conc") ## this is also tunable with a threshold argument, using the default here
 #table(contamdf.freq$contaminant)
@@ -95,32 +88,10 @@ contaminant_reads<-c(rownames(prevalence),rownames(frequency))
 # make your final phyloseq object that is nice and contaminant free!
 ps.noncontam <- prune_taxa(!contamdf.freq$contaminant, ps.noncontam)
 
-###Final Clean Ups
+####Final Clean Ups####
 greater_than_100_ASVs <- prune_samples(sample_sums(seq_object)>=100, ps.noncontam) ## get rid of any sample that contains fewer than 100 reads
 no_controls<-prune_samples(sample_data(greater_than_100_ASVs)$run.type == "Sample", greater_than_100_ASVs) ## remove samples we have already used for our decontam procedure
 no_controls<-subset_taxa(no_controls, Class!="Chloroplast") 
 no_controls<-subset_taxa(no_controls, Family!="Mitochondria")
 
 #saveRDS(no_controls,"ps_FieldWork2021_AJS_Final.RDS")
-seq_object = readRDS("ps_FieldWork2021_AJS_Final.RDS")
-
-####Export Samples to Reanalyze in Qiime####
-tax<-as(tax_table(seq_object),"matrix")
-tax_cols <- colnames(tax)
-tax<-as.data.frame(tax)
-tax$taxonomy<-do.call(paste, c(tax[tax_cols], sep=";"))
-for(co in tax_cols) tax[co]<-NULL
-#write.table(tax, "tax_final.txt", quote=FALSE, col.names=FALSE, sep="\t")
-
-library(biomformat);packageVersion("biomformat")
-otu<-as(otu_table(seq_object),"matrix")
-otu_biom<-make_biom(data=otu)
-#write_biom(otu_biom,"otu_biom_final.biom")
-
-meta<-as(sample_data(seq_object),"matrix")
-meta<-as.data.frame(meta)
-#write.csv(meta, "Meta_Final.csv")
-
-
-####Further Analysis in R####
-

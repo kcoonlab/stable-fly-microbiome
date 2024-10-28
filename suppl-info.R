@@ -7,8 +7,6 @@ library(data.table)
 library(breakaway)
 library(ggpubr)
 
-#### Fig. S1
-
 ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
 sample_data(ps)$SampleID <- row.names(sample_data(ps))
 sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.9.21"] <- "7.9.2021"
@@ -31,17 +29,9 @@ sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.26.21"] <- "8.26
 sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.2.21"] <- "9.2.2021"
 sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.9.21"] <- "9.9.2021"
 sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.15.21"] <- "9.15.2021"
-ps
-
-# Drop samples with less than 100 total reads
-ps <- subset_samples(ps, sample_sums(ps)>100) 
 
 # Drop the ASVs that have zeros across all samples
 ps <- subset_taxa(ps,taxa_sums(ps)>0)
-
-# Drop ASVs assigned to "Archaea", "Mitochondria" or "Chloroplast"
-ps <- ps %>% subset_taxa( Domain!= "Archaea" & Family!= " Mitochondria" | is.na(Family) )
-ps <- ps %>% subset_taxa( tax_table(ps)[,"Order"]!=" Chloroplast" | is.na(tax_table(ps)[,"Order"]) )
 
 # Collect sample data
 SamDat = data.frame(sample_data(ps))
@@ -78,20 +68,19 @@ df = df[df$Error>0.01,]
 RichPlot3 = merge(SamDat,df,by="SampleID")
 
 #### Goal: Summarize the estimates across different sample types/sampling dates
+
 #### Fig. S1 (left panel, Arlington samples only)
 
 # First, make a single variable that contains all of these elements
 RichPlot3Arlington = RichPlot3[RichPlot3$location=="Arlington",]
 RichPlot3Arlington$Comp = paste(RichPlot3Arlington$sampling.date,RichPlot3Arlington$sample.type)
 RichPlot3Arlington$Comp = as.factor(RichPlot3Arlington$Comp)
-head(RichPlot3Arlington)
 
 # Create an empty data frame that will hold the output data
 RichPlotSummArlington = data.frame(Comp=levels(RichPlot3Arlington$Comp))
 RichPlotSummArlington$Estimate = 0
 RichPlotSummArlington$Error = 0
 RichPlotSummArlington$p = 0
-head(RichPlotSummArlington)
 
 # Run a for loop that goes through each subset of data and makes the estimates using the betta function
 for (i in levels(RichPlot3Arlington$Comp)){
@@ -109,7 +98,6 @@ v1 <- lapply(lst, `[`, 1)
 v2 <- lapply(lst, `[`, 2)
 RichPlotSummArlington$sampling.date = v1
 RichPlotSummArlington$sample.type = v2
-RichPlotSummArlington
 
 # Plot final richness estimates with error bars
 # ±1.96*SE represents 95% confidence intervals
@@ -122,20 +110,18 @@ p = p + ylab("Richness estimate")
 p = p + ggtitle("Arlington")
 p
 
-#### Goal: Summarize the estimates across different sample types/sampling dates
 #### Fig. S1 (right panel, DCC samples only)
+
 #### Start with manure samples
 
 RichPlot3DCCManure = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Manure",]
 RichPlot3DCCManure$sampling.date = as.factor(RichPlot3DCCManure$sampling.date)
-head(RichPlot3DCCManure)
 
 # Create an empty data frame that will hold the output data
 RichPlotSummDCCManure = data.frame(sampling.date=levels(RichPlot3DCCManure$sampling.date))
 RichPlotSummDCCManure$Estimate = 0
 RichPlotSummDCCManure$Error = 0
 RichPlotSummDCCManure$p = 0
-head(RichPlotSummDCCManure)
 
 # Run a for loop that goes through each subset of data and makes the estimates using the betta function
 for (i in levels(RichPlot3DCCManure$sampling.date)){
@@ -162,12 +148,12 @@ p
 RichPlot3DCCEndo = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Endo",]
 RichPlot3DCCEndo = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date=="7.15.2021"|RichPlot3DCCEndo$sampling.date=="7.22.2021",]
 RichPlot3DCCEndo$sampling.date = as.factor(RichPlot3DCCEndo$sampling.date)
-head(RichPlot3DCCEndo)
+
 RichPlotSummDCCEndo = data.frame(sampling.date=levels(RichPlot3DCCEndo$sampling.date))
 RichPlotSummDCCEndo$Estimate = 0
 RichPlotSummDCCEndo$Error = 0
 RichPlotSummDCCEndo$p = 0
-head(RichPlotSummDCCEndo)
+
 for (i in levels(RichPlot3DCCEndo$sampling.date)){
   d = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date==i,]
   Betta = betta(d$Estimate,d$Error)
@@ -205,13 +191,13 @@ y=c(19.09134,14.02042,66.40300,20.26297)
 plot(x,y)
 
 #### Goal: summarize the estimates for each sample type across different sampling locations within a single facility
+
 #### Fig. S2 (left panel, Arlington samples only)
 
-#### Arlington manure first
+#### Manure first
 
 RichPlot3ArlingtonManure = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type=="Manure",]
 RichPlot3ArlingtonManure$trap = as.factor(RichPlot3ArlingtonManure$trap)
-head(RichPlot3ArlingtonManure)
 
 # Create an empty data frame that will hold the output data
 RichPlotSummArlingtonManure = data.frame(trap=levels(RichPlot3ArlingtonManure$trap))
@@ -240,19 +226,17 @@ p = p + ylab("Richness estimate")
 p = p + ggtitle("Arlington Manure")
 p
 
-#### Now Arlington flies (internal samples)
+#### Now flies (internal samples)
 
 RichPlot3ArlingtonFlies = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type!="Manure",]
 RichPlot3ArlingtonFlies = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$sample.type=="Endo",]
 RichPlot3ArlingtonFlies$trap = as.factor(RichPlot3ArlingtonFlies$trap)
-head(RichPlot3ArlingtonFlies)
 
 # Create an empty data frame that will hold the output data
 RichPlotSummArlingtonFlies = data.frame(trap=levels(RichPlot3ArlingtonFlies$trap))
 RichPlotSummArlingtonFlies$Estimate = 0
 RichPlotSummArlingtonFlies$Error = 0
 RichPlotSummArlingtonFlies$p = 0
-head(RichPlotSummArlingtonFlies)
 
 # Run a for loop that goes through each subset of data and makes the estimates using the betta function
 for (i in levels(RichPlot3ArlingtonFlies$trap)){
@@ -274,19 +258,17 @@ p = p + ylab("Richness estimate")
 p = p + ggtitle("Arlington Flies (Internal)")
 p
 
-#### Now Arlington flies (external samples)
+#### Now flies (external samples)
 
 RichPlot3ArlingtonFlies = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type!="Manure",]
 RichPlot3ArlingtonFlies = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$sample.type=="Ecto",]
 RichPlot3ArlingtonFlies$trap = as.factor(RichPlot3ArlingtonFlies$trap)
-head(RichPlot3ArlingtonFlies)
 
 # Create an empty data frame that will hold the output data
 RichPlotSummArlingtonFlies = data.frame(trap=levels(RichPlot3ArlingtonFlies$trap))
 RichPlotSummArlingtonFlies$Estimate = 0
 RichPlotSummArlingtonFlies$Error = 0
 RichPlotSummArlingtonFlies$p = 0
-head(RichPlotSummArlingtonFlies)
 
 # Run a for loop that goes through each subset of data and makes the estimates using the betta function
 for (i in levels(RichPlot3ArlingtonFlies$trap)){
@@ -309,18 +291,17 @@ p = p + ggtitle("Arlington Flies (External)")
 p
 
 #### Goal: summarize the estimates for each sample type across different sampling locations within a single facility
+
 #### Fig. S2 (right panel, DCC manure samples only)
 
 RichPlot3DCCManure = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Manure",]
 RichPlot3DCCManure$trap = as.factor(RichPlot3DCCManure$trap)
-head(RichPlot3DCCManure)
 
 # Create an empty data frame that will hold the output data
 RichPlotSummDCCManure = data.frame(trap=levels(RichPlot3DCCManure$trap))
 RichPlotSummDCCManure$Estimate = 0
 RichPlotSummDCCManure$Error = 0
 RichPlotSummDCCManure$p = 0
-head(RichPlotSummDCCManure)
 
 # Run a for loop that goes through each subset of data and makes the estimates using the betta function
 for (i in levels(RichPlot3DCCManure$trap)){
@@ -343,6 +324,7 @@ p = p + ggtitle("DCC Manure")
 p
 
 #### Goal: PCoA to compare communities in different sample types across sampling dates within each facility ####
+
 #### Fig. S3 (Arlington samples only)
 
 ps.norm = transform_sample_counts(ps, function(x) x / sum(x) )
@@ -481,7 +463,6 @@ ggarrange(p1, p2, p3, p4, p5, p6, p7, p8, p9 + rremove("x.text"),
           labels = c("Jul9", "Jul16", "Jul23", "Jul30", "Aug6", "Aug13", "Aug20", "Aug27", "Sept10"),
           ncol = 3, nrow = 3)
 
-#### Goal: PCoA to compare communities in different sample types across sampling dates within each facility ####
 #### Fig. S4 (DCC samples only)
 
 ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.8.2021")
@@ -589,6 +570,7 @@ ggarrange(p1, p2, p3, p4, p5, p6, p7 + rremove("x.text"),
           ncol = 3, nrow = 3)
 
 #### Goal: PCoA to compare communities in different sample types across different sampling locations within a single facility ####
+				  
 #### Fig. S5 (top left panel, Arlington manure samples only)
 
 # Create PCoA ordination
@@ -631,6 +613,8 @@ p = p + theme(legend.text = element_text(size = 10))
 p$layers = p$layers[-1] #to remove the larger point coded in original plot
 p
 
+#### Fig. S6
+				  
 #### Figs. S7-S9 (Arlington panels)
 
 ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
@@ -694,36 +678,28 @@ abdTable <- as.data.frame(abdTable)
 # This list will hold the Family objects once completed
 familyClassList <- list()
 
-# Loop over the rows of the sample data data frame, building the objects by
-#   familiy group number.  But we only want to build it once, so when we run
-#   across the family group number again we don't want to re-build it.
+# Loop over the rows of the sample data data frame, building the objects by familiy group number.  But we only want to build it once, so when we run across the family group number again we don't want to re-build it.
 
 for (i in 1:140) {
   # Get the current family group from the sample data table
   currentFamilyGroup <- sampleData[i, "sampling.date"]
   
-  # Get all the current family names in familyClassList to check if 
-  #   currentFamilyGroup has already been built:
+  # Get all the current family names in familyClassList to check if currentFamilyGroup has already been built:
   familyNames <- names(familyClassList)
   
   # If the current family group has not been built, build it:
   if (!(currentFamilyGroup %in% familyNames)){
     # Populate the family_group slot:
-    # Create a list of sample names for all the samples in the current family group
-    #   by subsetting the sample data df and extracting the sample names as a char
-    #   vector.  Then, add to the memberList list that will be looped over to
-    #   build each FamilyMember object for the current Family.
+    # Create a list of sample names for all the samples in the current family group by subsetting the sample data df and extracting the sample names as a char vector.  Then, add to the memberList list that will be looped over to build each FamilyMember object for the current Family.
     members <- sampleData %>%
       filter(sampling.date == currentFamilyGroup) %>%
       dplyr::select(all_of("sample_id"))
     memberList <- as.list(members$sample_id)
     
-    # Create an empty list to hold FamilyMember objects which will be added to the 
-    #   Family object in the end.
+    # Create an empty list to hold FamilyMember objects which will be added to the Family object in the end.
     currentFamilyMembersList <- list()
     
-    # Loop over the sample names in memberList and build a new FamilyMember object for
-    #   each sample:
+    # Loop over the sample names in memberList and build a new FamilyMember object for each sample:
     for (sample in memberList) {
       newMember <- new("FamilyMember",
                        family_group = currentFamilyGroup,
@@ -735,8 +711,7 @@ for (i in 1:140) {
     currentFamilyMembersList[[sample]] <- newMember
     }
     
-    # Now that the member list is complete, get a total read sum to be put into the 
-    #  Family object (sum of each family member's total read count).
+    # Now that the member list is complete, get a total read sum to be put into the Family object (sum of each family member's total read count).
     totalSum <- 0
     for (member in currentFamilyMembersList) {
       sampleSum <- member@sample_sum
@@ -755,29 +730,15 @@ for (i in 1:140) {
 
 # Select "Valid" Families
 
-#Families including a manure sample and at least one fly sample.
-
-#----- Determine which family groups are valid -----# 
-
 # A valid Family must have at least one manure sample and one fly sample:
-# So a Family object should have a family_member list equal to length 3 or
-# equal to length 2 where one of the sample_designation values is "Manure"
+# So a Family object should have a family_member list equal to length 3 or equal to length 2 where one of the sample_designation values is "Manure".
 
 # Create a list to hold the valid Family objects:
 validFamilies <- familyClassList
 
-# Infant Perspective 
+# Goal: generate a data frame holding all fly samples and all their ASVs (as rows). For each ASV in the given fly sample, count the number of reads and the percentage of the total reads in the fly sample that the ASV accounts for.
 
-#----- Populate Table for Plotting Infants -----#
-
-# This is for the "infant perspective" plot.
-
-# Goal: generate a data frame holding all infants and all their ASVs (as rows). For each
-#   ASV in the given infant, count the number of reads and
-#   the percentage of the total reads in the infant that the ASV accounts for
-#   ("infant_percent" column.)
-
-allF1ASVTables <- data.frame()
+allFlyASVTables <- data.frame()
 
 for (k in 1:length(validFamilies)) {
   family <- validFamilies[[k]]
@@ -790,142 +751,128 @@ for (k in 1:length(validFamilies)) {
       currentFly <- c(currentFly,familyMembers[[i]])
     	}
 
-  # Put infants in a list to loop over:
-  currentF1List <- list(currentFly)
+  # Put fly samples in a list to loop over:
+  currentFlyList <- list(currentFly)
   
-  # Remove any NULL elements in the list (in case there is only 1 infant)
-  currentF1List <- plyr::compact(currentF1List)
+  # Remove any NULL elements in the list (in case there is only 1 fly sample)
+  currentFlyList <- plyr::compact(currentFlyList)
 
-  # Loop over the infant list and populate the "infant perspective" data frame:
-  #   allInfantASVTables - for each infant samples, holds the ASV, 
-  #     its percentage of the total reads in the infant, and whether it's shared with mother
-  #   (Later) to get the total percent shared and not shared for each infant (for plotting)
-  #     allInfantASVTables %>% group_by(sample, shared) %>% summarise(percent = sum(infants))
+  # Loop over the fly sample list and populate the data frame:
+  #   allFlyASVTables - for each fly sample, holds the ASV, its percentage of the total reads in the fly sample, and whether it's shared with manure
   
-  for (i in 1:length(currentF1List[[1]])) {
+  for (i in 1:length(currentFlyList[[1]])) {
   
-    current_F1 <- currentF1List[[1]][[i]]
-    #currentInfantName <- current_infant@name
+    current_Fly <- currentFlyList[[1]][[i]]
     
-    # build infant's identifier (FamGroup.1 or FamGroup.2)
-    F1Designation <- current_F1@sample_designation
-    F1Identifier <- paste(family@family_group, F1Designation, sep = "/")
+    # build fly sample's identifier (FamGroup.1 or FamGroup.2)
+    FlyDesignation <- current_Fly@sample_designation
+    FlyIdentifier <- paste(family@family_group, FlyDesignation, sep = "/")
 	
-	Manure_ASV_counts = CountASVs("Manure-Manure", abdTable)
+    Manure_ASV_counts = CountASVs("Manure-Manure", abdTable)
 
     # merge current infant's ASV counts with mother's
-    F1Table <- merge(current_F1@ASV_counts,
+    FlyTable <- merge(current_Fly@ASV_counts,
                          Manure_ASV_counts,
                          by = "ASV", all = TRUE)
     
-    # Replace column names with the samples' sample_designations for easier
-    #   plotting downstream:
+    # Replace column names with the samples' sample_designations for easier plotting downstream:
     
-      currentColName <- names(F1Table)[2]
-      setnames(F1Table, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
+      currentColName <- names(FlyTable)[2]
+      setnames(FlyTable, old = currentColName, new = familyMembers[[currentColName]]@sample_designation)
     
-    # Collapse table to figure out what is shared from infant's perspective -
-    #   remove any ASVs that have a count of NA in the current infant.
-    F1Table <- F1Table[!(is.na(F1Table[[F1Designation]])), ]
+    # Collapse table to figure out what is shared from fly sample's perspective - remove any ASVs that have a count of NA in the current fly sample.
+    FlyTable <- FlyTable[!(is.na(FlyTable[[FlyDesignation]])), ]
     
-    # Add a column to indicate if each ASV (row) in the collapsed table is 
-    #   shared with mom or not. If the ASV has a value of NA in mother column
-    #   then it cannot be shared between current infant and mom.
+    # Add a column to indicate if each ASV (row) in the collapsed table is shared with manure or not. If the ASV has a value of NA in manure column then it cannot be shared between current fly sample and manure.
     
-    F1Table$shared <- ifelse(!(is.na(F1Table$"Manure-Manure")), yes = TRUE, no = FALSE)
-    F1Table$sample <- F1Identifier
+    FlyTable$shared <- ifelse(!(is.na(FlyTable$"Manure-Manure")), yes = TRUE, no = FALSE)
+    FlyTable$sample <- FlyIdentifier
 
     # Prepare to add this table to a bigger list, but don't add until end!
-    setnames(F1Table, old = F1Designation, new = "read_count")
+    setnames(FlyTable, old = FlyDesignation, new = "read_count")
       
-    # For this infant, calculate percent of reads that are from ASVs that
-    #   are shared with mom, and not shared with mom (keep this table).
-    F1Sum <- sum(F1Table$read_count)
-    F1SharedSum <- sum(F1Table$read_count[F1Table$shared == TRUE])
-    F1NotSharedSum <- sum(F1Table$read_count[F1Table$shared == FALSE])
+    # For this fly sample, calculate percent of reads that are from ASVs that are shared with manure, and not shared with manure (keep this table).
+    FlySum <- sum(FlyTable$read_count)
+    FlySharedSum <- sum(FlyTable$read_count[FlyTable$shared == TRUE])
+    FlyNotSharedSum <- sum(FlyTable$read_count[FlyTable$shared == FALSE])
       
-    # Add the infantTable (the one with ASVs as rows) to larger data frame
-    F1TablePercentages <- F1Table %>%
-      mutate("F1_percent" = read_count/F1Sum) %>%
+    # Add the FlyTable (the one with ASVs as rows) to larger data frame
+    FlyTablePercentages <- FlyTable %>%
+      mutate("Fly_percent" = read_count/FlySum) %>%
       dplyr::select(-c("Manure-Manure"))
     
-    # Add infant sample name to table
-    #infantTablePercentages <- cbind(infantTablePercentages,
-                                    #"infant_sample" = currentInfantName)
-    
-    allF1ASVTables <- rbind(allF1ASVTables, F1TablePercentages)
+    allFlyASVTables <- rbind(allFlyASVTables, FlyTablePercentages)
   }
 }
 
-# Infant Perspective Richness
+# Generate a plot that is similar to the one above, but by richness instead of relative abundance of reads.
 
-# Generate a plot that is similar to the one above, but by richness instead
-#   of relative abundance of reads.
+# Group allFlyASVTables by sample and shared (T/F) then count
 
-# Group allInfantASVTables by sample and shared (T/F) then count
-
-F1PerspectiveRichness <- allF1ASVTables
-array <- unlist(strsplit(F1PerspectiveRichness$sample, "[/]"))
+FlyPerspectiveRichness <- allFlyASVTables
+array <- unlist(strsplit(FlyPerspectiveRichness$sample, "[/]"))
 date <- array[c(TRUE, FALSE)]
-F1PerspectiveRichness$date <- date
+FlyPerspectiveRichness$date <- date
 
-F1PerspectiveRichness.1 <- F1PerspectiveRichness %>%
+FlyPerspectiveRichness.1 <- FlyPerspectiveRichness %>%
   group_by(date, sample, shared) %>%
   summarise(number_of_ASVs = n())
   
-lst <- strsplit(F1PerspectiveRichness.1$sample,'/')
+lst <- strsplit(FlyPerspectiveRichness.1$sample,'/')
 v2 <- lapply(lst, `[`, 2)
 v2 = substr(v2,1,4)
-F1PerspectiveRichness.1$sample.type <- v2
+FlyPerspectiveRichness.1$sample.type <- v2
 
-F1SharedOTUs <- F1PerspectiveRichness.1
-F1SharedOTUs <- filter(F1SharedOTUs, shared == TRUE)
-F1SharedOTUs <- subset(F1SharedOTUs, select = c(date,sample,number_of_ASVs, sample.type))
-F1SharedOTUs$sample.type <- factor(F1SharedOTUs$sample.type, levels=c("Endo", "Ecto"))
-F1SharedOTUs$trap <- c("B2-West","B1-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B1-East","B1-West","B2-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B2-East","B1-East","B1-East","B1-East","B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East")
-F1SharedOTUs$trap <- factor(F1SharedOTUs$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
-kruskal.test(number_of_ASVs~as.factor(sample.type),data=F1SharedOTUs) #Significant (p < 0.0001)
-means <- aggregate(number_of_ASVs ~ sample.type, data = F1SharedOTUs, 
+FlySharedOTUs <- FlyPerspectiveRichness.1
+FlySharedOTUs <- filter(FlySharedOTUs, shared == TRUE)
+FlySharedOTUs <- subset(FlySharedOTUs, select = c(date,sample,number_of_ASVs, sample.type))
+FlySharedOTUs$sample.type <- factor(FlySharedOTUs$sample.type, levels=c("Endo", "Ecto"))
+FlySharedOTUs$trap <- c("B2-West","B1-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B1-East","B1-West","B2-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-West","B1-West","B2-East","B2-East","B2-East","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B1-East","B1-West","B2-East","B2-West","B1-East","B1-East","B1-East","B1-East","B1-East","B1-West","B1-West","B1-West","B1-West","B1-West","B2-East","B2-East","B2-East","B2-East","B2-East","B2-West","B2-West","B2-West","B2-West","B1-East","B2-East","B1-East","B1-East","B1-East","B1-East","B1-East","B2-East","B2-East","B2-East","B2-East","B2-East")
+FlySharedOTUs$trap <- factor(FlySharedOTUs$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
+kruskal.test(number_of_ASVs~as.factor(sample.type),data=FlySharedOTUs) #Significant (p < 0.0001)
+
+means <- aggregate(number_of_ASVs ~ sample.type, data = FlySharedOTUs, 
           FUN = function(x) c(mean = mean(x)))
-
-cis <- aggregate(number_of_ASVs ~ sample.type, data = F1SharedOTUs, 
+cis <- aggregate(number_of_ASVs ~ sample.type, data = FlySharedOTUs, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
-
 summary <- merge(means,cis,by="sample.type")
 summary$sample.type <- factor(summary$sample.type, levels=c("Endo", "Ecto"))
 
-#### Fig. S7 (left, endo)                 
-F1SharedOTUs$date <- factor(F1SharedOTUs$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
-F1SharedOTUs.Endo <- F1SharedOTUs[F1SharedOTUs$sample.type=="Endo",]
-F1SharedOTUs.Ecto <- F1SharedOTUs[F1SharedOTUs$sample.type=="Ecto",]
-kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Endo) #NS (p = 0.5275)
-kruskal.test(number_of_ASVs~as.factor(date),data=F1SharedOTUs.Ecto) #NS (p = 0.0781)
+#### Fig. S7 (left panel, Arlington internal samples only)
+		 
+FlySharedOTUs$date <- factor(FlySharedOTUs$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
+FlySharedOTUs.Endo <- FlySharedOTUs[FlySharedOTUs$sample.type=="Endo",]
+FlySharedOTUs.Ecto <- FlySharedOTUs[FlySharedOTUs$sample.type=="Ecto",]
+kruskal.test(number_of_ASVs~as.factor(date),data=FlySharedOTUs.Endo) #NS (p = 0.5275)
+kruskal.test(number_of_ASVs~as.factor(date),data=FlySharedOTUs.Ecto) #NS (p = 0.0781)
 
-means <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Endo, 
+means <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Endo, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Endo, 
+cis <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Endo, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="date")
 summary$date <- factor(summary$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
 ggplot(summary, aes(x = date, y = number_of_ASVs.x)) +
-    geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) + #Fig. S7 (left)
+    geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1)
     geom_point()
 
-#### Fig. S7 (left, ecto)
-means <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Ecto, 
+#### Fig. S7 (left panel, Arlington external samples only)
+		 
+means <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ date, data = F1SharedOTUs.Ecto, 
+cis <- aggregate(number_of_ASVs ~ date, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="date")
 summary$date <- factor(summary$date, levels=c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
 ggplot(summary, aes(x = date, y = number_of_ASVs.x)) +
-    geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) + #Fig. S7 (left)
+    geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-#### Fig. S8 (bottom, endo)
-means <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Endo, 
+#### Fig. S8 (bottom panel, Arlington internal samples only)
+		 
+means <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Endo, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Endo, 
+cis <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Endo, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="trap")
 summary$date <- factor(summary$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
@@ -933,10 +880,11 @@ ggplot(summary, aes(x = trap, y = number_of_ASVs.x)) + #Fig. S8 (bottom)
     geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-#### Fig. S8 (top, ecto)
-means <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Ecto, 
+#### Fig. S8 (top panel, Arlington external samples only)
+		 
+means <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(mean = mean(x)))
-cis <- aggregate(number_of_ASVs ~ trap, data = F1SharedOTUs.Ecto, 
+cis <- aggregate(number_of_ASVs ~ trap, data = FlySharedOTUs.Ecto, 
           FUN = function(x) c(ci = 1.96*(sd(x) / sqrt(length(x)))))
 summary <- merge(means,cis,by="trap")
 summary$date <- factor(summary$trap, levels=c("B1-East", "B1-West", "B2-East", "B2-West"))
@@ -944,30 +892,27 @@ ggplot(summary, aes(x = date, y = number_of_ASVs.x)) + #Fig. S8 (top)
     geom_errorbar(aes(ymin=number_of_ASVs.x-number_of_ASVs.y, ymax=number_of_ASVs.x+number_of_ASVs.y), width=.1) +
     geom_point()
 
-##
+#### Fig. S9 (top left panel, Arlington internal samples only)
 
-F1PerspectiveRA <- allF1ASVTables
-array <- unlist(strsplit(F1PerspectiveRA$sample, "[/]"))
+FlyPerspectiveRA <- allFlyASVTables
+array <- unlist(strsplit(FlyPerspectiveRA$sample, "[/]"))
 date <- array[c(TRUE, FALSE)]
-F1PerspectiveRA$date <- date
+FlyPerspectiveRA$date <- date
 
-F1PerspectiveRA.1 <- F1PerspectiveRA %>%
+FlyPerspectiveRA.1 <- FlyPerspectiveRA %>%
   group_by(date, sample, shared) %>%
   summarise(tot_shared_reads = sum(read_count))
   
-F1PerspectiveRA.2 <- F1PerspectiveRA.1 %>%
+FlyPerspectiveRA.2 <- FlyPerspectiveRA.1 %>%
   group_by(sample) %>%
   summarise(tot_reads = sum(tot_shared_reads))
 
-F1PerspectiveRA.3 <- merge(x = F1PerspectiveRA.1,y = F1PerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
+FlyPerspectiveRA.3 <- merge(x = FlyPerspectiveRA.1,y = FlyPerspectiveRA.2,by.x = "sample",by.y = "sample", all = T)
 
-F1PerspectiveRA.3$percent <- F1PerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
+FlyPerspectiveRA.3$percent <- FlyPerspectiveRA.3$tot_shared_reads/F1PerspectiveRA.3$tot_reads
 
-write.csv(F1PerspectiveRA.3, 
-            file = "ManurePerspectiveRAFlies.csv",
-            quote = FALSE, row.names = FALSE)
+#write.csv(F1PerspectiveRA.3, file = "ManurePerspectiveRAFlies.csv", quote = FALSE, row.names = FALSE)
 
-#### Fig. S9 (top left, endo)
 data=read.csv("ManurePerspectiveRAFliesFormatted.csv")
 data.endo <- data[data$fly.source=="Endo",]
 data_summary <- aggregate(percent_shared ~ as.factor(date), data.endo,       # Create summary data
@@ -981,7 +926,7 @@ ggplot(data_summary) +
     geom_errorbar( aes(x=group, ymin=mean-ci, ymax=mean+ci), width=0.4, colour="orange", alpha=0.9, size=1.3) +
     ylim(0,1)
 
-#### Fig. S9 (bottom left, ecto)
+#### Fig. S9 (bottom left panel, Arlington external samples only)
                           
 data.ecto <- data[data$fly.source=="Ecto",]
 data_summary <- aggregate(percent_shared ~ as.factor(date), data.ecto,       # Create summary data

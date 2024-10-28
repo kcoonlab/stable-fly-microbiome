@@ -1,15 +1,54 @@
-**Repository for Sommer, A. J., Kettner, J. E., & Coon, K. L. (2024). Stable flies are bona fide carriers of mastitis-associated bacteria. mSphere, e00336-24. https://doi.org/10.1128/msphere.00336-24** 
+## Overview 
+**Raw data and scripts for:**
+Stable flies are bona fide carriers of mastitis-associated bacteria
 
-Raw Illumina reads are available in the NCBI Sequence Read Archive under BioProject ID PRJNA1032128
+## Authors 
+* Andrew J. Sommer
+* Julia E. Kettner
+* Kerri L. Coon - kerri.coon@wisc.edu
 
-Sample information is available as part of supplemental file S1 in published manuscript 
+## Analysis overview 
+Scripts for each analysis are written in R. Each directory contains necessary files and code to recreate each figure, table, and associated statistical analyses reported in the manuscript. To repeat the analysis, clone the repository, and then run each script. Do not `cd` into the cloned repository. 
 
-<br />
-<br />
+**Example**
+* Create a new project in RStudio. To run the script to recreate Fig. 1 in the manuscript: 
+	* Navigate to the terminal window and `git clone https://github.com/kcoonlab/stable-fly-microbiome`.
+	* Open the script `Fig1.R` from the files panel window.
+	* Install required packages. 
+	* `cmd enter` from line `1`.
 
-Files in this repository:
+**Before getting started**
+* Run the script `phyloseq-object.R` (code from line `1` to `42`) to generate a phyloseq object from the appropriate qiime artifacts. This object will be referenced in some downstream analyses.
 
-*StableFlyMicrobiome_Qiime2_AJS* -> script for sequence processing via Qiime2 <br />
-*StableFlyMicrobiome_PhyloseqQualityControl_AJS* -> R Script to generate main phyloseq objeect <br />
-*ps_FieldWork2021_AJS_Final.RDS* -> main phyloseq object used in analyses <br />
-*analysis-master.R*, *results1.R*,*results2.R*  -> R Scripts used to generate figures from phyloseq object <br />
+## Recreate the manuscript figures and associated statistical analyses
+Once the repository has been cloned (above), recreate each figure/table/data analysis as follows: 
+
+**Fig. 2: Community-level ASV richness in Arlington- and DCC-derived samples, by sample source**
+* Left panel (Arlington samples) - Script: `Fig2.R`: run code from line `1` to `141`
+* Right panel (DCC samples) - Script: `Fig2.R`: run code from line `1` to `154`
+
+**Fig. 3: Relative abundance of bacterial orders in Arlington- and DCC-derived fly and manure samples, by sampling date**
+* Script: `Fig3.R`: run code from line `1` to `90`
+
+**Fig. 4: PCoA of Bray-Curtis dissimilarities of community relative abundances, colored by sample source**
+* Left panel (Arlington samples) - Script: `Fig4.R`: run code from line `1` to `75`
+* Right panel (DCC samples) - Script: `Fig4.R`: run code from line `1` to `95`
+
+**Fig. 5: Bacterial ASV analysis**
+* Fig 5A - Script: `Fig5.R`: run code from line `1` to `240` (Arlington samples) and from `1` to `724` (DCC samples)
+* Fig 5B - Script: `Fig5.R`: run code from line `1` to `278` (Arlington samples) and from `1` to `762` (DCC samples)
+* Fig 5C - Script: `Fig5.R`: run code from line `1` to `498` (Arlington samples) and from `1` to `982` (DCC samples)
+
+**Fig. 7: Relative abundance of commonly shared ASVs in Arlington- and DCC-derived samples, by sample source**
+* Left panel (Arlington samples) - Script: `Fig5.R`: run code from line `1` to `111`
+* Right panel (DCC samples) - Script: `Fig5.R`: run code from line `1` to `193`
+
+#### Miscellaneous data analyses
+* 
+
+#### Supplementary information 
+* 
+
+## Citation 
+Sommer AJ, Kettner JE, Coon KL. (2024). Microbiota composition associates with mosquito productivity outcomes in belowground larval habitats. mSphere 9(7):e0033624. https://doi.org/10.1128/msphere.00336-24.
+

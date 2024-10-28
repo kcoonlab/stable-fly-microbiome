@@ -4,6 +4,632 @@ library(phyloseq)
 library(dplyr)
 library(tidyverse)
 library(data.table)
+library(breakaway)
+library(ggpubr)
+
+#### Fig. S1
+
+ps <- readRDS("ps_FieldWork2021_AJS_Final.rds")
+sample_data(ps)$SampleID <- row.names(sample_data(ps))
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.9.21"] <- "7.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.16.21"] <- "7.16.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.23.21"] <- "7.23.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.30.21"] <- "7.30.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.6.21"] <- "8.6.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.13.21"] <- "8.13.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.20.21"] <- "8.20.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.27.21"] <- "8.27.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.10.21"] <- "9.10.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.8.21"] <- "7.8.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.15.21"] <- "7.15.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.22.21"] <- "7.22.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="7.29.21"] <- "7.29.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.5.21"] <- "8.5.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.12.21"] <- "8.12.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.19.21"] <- "8.19.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="8.26.21"] <- "8.26.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.2.21"] <- "9.2.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.9.21"] <- "9.9.2021"
+sample_data(ps)$sampling.date[sample_data(ps)$sampling.date=="9.15.21"] <- "9.15.2021"
+ps
+
+# Drop samples with less than 100 total reads
+ps <- subset_samples(ps, sample_sums(ps)>100) 
+
+# Drop the ASVs that have zeros across all samples
+ps <- subset_taxa(ps,taxa_sums(ps)>0)
+
+# Drop ASVs assigned to "Archaea", "Mitochondria" or "Chloroplast"
+ps <- ps %>% subset_taxa( Domain!= "Archaea" & Family!= " Mitochondria" | is.na(Family) )
+ps <- ps %>% subset_taxa( tax_table(ps)[,"Order"]!=" Chloroplast" | is.na(tax_table(ps)[,"Order"]) )
+
+# Collect sample data
+SamDat = data.frame(sample_data(ps))
+SamDat$SampleID = row.names(SamDat)
+
+#### Generate Breakaway Richness Estimates ####
+
+# Set OTU table
+otu_data = t(otu_table(ps))
+# Set sample data
+meta_data = sample_data(ps)
+
+# Run Breakaway's frequency table list function
+frequencytablelist = build_frequency_count_tables(otu_data)
+
+# Run the richness estimator (breakaway) on all our samples (lists of frequency tables)
+RichEsts = lapply(frequencytablelist,breakaway)
+
+# Pull out the estimates, errors, and the model
+Estimate = as.matrix(map(RichEsts, "estimate"))
+Error = as.matrix(map(RichEsts, "error"))
+Model = as.matrix(map(RichEsts, "model"))
+df = data.frame(Estimate,Error,Model)
+
+# Add sample ID column, estimate, and error
+df$SampleID = row.names(df)
+df$Estimate=as.numeric(df$Estimate)
+df$Error=as.numeric(df$Error)
+
+#Remove rows where error is equal to zero
+df = df[df$Error>0.01,]
+
+# Merge the estimates with the sample data
+RichPlot3 = merge(SamDat,df,by="SampleID")
+
+#### Goal: Summarize the estimates across different sample types/sampling dates
+#### Fig. S1 (left panel, Arlington samples only)
+
+# First, make a single variable that contains all of these elements
+RichPlot3Arlington = RichPlot3[RichPlot3$location=="Arlington",]
+RichPlot3Arlington$Comp = paste(RichPlot3Arlington$sampling.date,RichPlot3Arlington$sample.type)
+RichPlot3Arlington$Comp = as.factor(RichPlot3Arlington$Comp)
+head(RichPlot3Arlington)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlington = data.frame(Comp=levels(RichPlot3Arlington$Comp))
+RichPlotSummArlington$Estimate = 0
+RichPlotSummArlington$Error = 0
+RichPlotSummArlington$p = 0
+head(RichPlotSummArlington)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3Arlington$Comp)){
+  d = RichPlot3Arlington[RichPlot3Arlington$Comp==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlington[RichPlotSummArlington$Comp==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlington[RichPlotSummArlington$Comp==i,]$Error = Betta$table[,2]
+  RichPlotSummArlington[RichPlotSummArlington$Comp==i,]$p = Betta$table[,3]
+}
+
+# Pull out elements from the Comp variable so we can use them as plotting variables
+lst <- strsplit(RichPlotSummArlington$Comp,' ')
+v1 <- lapply(lst, `[`, 1)
+v2 <- lapply(lst, `[`, 2)
+RichPlotSummArlington$sampling.date = v1
+RichPlotSummArlington$sample.type = v2
+RichPlotSummArlington
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlington$sampling.date = factor(RichPlotSummArlington$sampling.date, levels = c("7.9.2021","7.16.2021","7.23.2021","7.30.2021","8.6.2021","8.13.2021","8.20.2021","8.27.2021","9.10.2021"))
+RichPlotSummArlington$sample.type = factor(RichPlotSummArlington$sample.type, levels = c("Endo","Ecto","Manure"))
+p = ggplot(RichPlotSummArlington,aes(y=Estimate,x=sampling.date,color=sample.type))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington")
+p
+
+#### Goal: Summarize the estimates across different sample types/sampling dates
+#### Fig. S1 (right panel, DCC samples only)
+#### Start with manure samples
+
+RichPlot3DCCManure = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Manure",]
+RichPlot3DCCManure$sampling.date = as.factor(RichPlot3DCCManure$sampling.date)
+head(RichPlot3DCCManure)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummDCCManure = data.frame(sampling.date=levels(RichPlot3DCCManure$sampling.date))
+RichPlotSummDCCManure$Estimate = 0
+RichPlotSummDCCManure$Error = 0
+RichPlotSummDCCManure$p = 0
+head(RichPlotSummDCCManure)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3DCCManure$sampling.date)){
+  d = RichPlot3DCCManure[RichPlot3DCCManure$sampling.date==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummDCCManure[RichPlotSummDCCManure$sampling.date==i,]$Estimate = Betta$table[,1]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$sampling.date==i,]$Error = Betta$table[,2]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$sampling.date==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummDCCManure$sampling.date = factor(RichPlotSummDCCManure$sampling.date, levels = c("7.8.2021","7.15.2021","7.22.2021","7.29.2021","8.5.2021","8.12.2021","8.19.2021","8.26.2021","9.2.2021","9.9.2021","9.15.2021"))
+p = ggplot(RichPlotSummDCCManure,aes(y=Estimate,x=sampling.date))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("DCC")
+p
+
+#### Now endo samples (for dates having at least three independent pools)
+
+RichPlot3DCCEndo = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Endo",]
+RichPlot3DCCEndo = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date=="7.15.2021"|RichPlot3DCCEndo$sampling.date=="7.22.2021",]
+RichPlot3DCCEndo$sampling.date = as.factor(RichPlot3DCCEndo$sampling.date)
+head(RichPlot3DCCEndo)
+RichPlotSummDCCEndo = data.frame(sampling.date=levels(RichPlot3DCCEndo$sampling.date))
+RichPlotSummDCCEndo$Estimate = 0
+RichPlotSummDCCEndo$Error = 0
+RichPlotSummDCCEndo$p = 0
+head(RichPlotSummDCCEndo)
+for (i in levels(RichPlot3DCCEndo$sampling.date)){
+  d = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummDCCEndo[RichPlotSummDCCEndo$sampling.date==i,]$Estimate = Betta$table[,1]
+  RichPlotSummDCCEndo[RichPlotSummDCCEndo$sampling.date==i,]$Error = Betta$table[,2]
+  RichPlotSummDCCEndo[RichPlotSummDCCEndo$sampling.date==i,]$p = Betta$table[,3]
+}
+RichPlotSummDCCEndo$sampling.date = factor(RichPlotSummDCCEndo$sampling.date, levels = c("7.15.2021","7.22.2021"))
+p = ggplot(RichPlotSummDCCEndo,aes(y=Estimate,x=sampling.date))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("DCC")
+p
+
+#### Now endo samples (for dates having less than three independent pools)
+
+RichPlot3DCCEndo = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Endo",]
+RichPlot3DCCEndo = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date!="7.15.2021",]
+RichPlot3DCCEndo = RichPlot3DCCEndo[RichPlot3DCCEndo$sampling.date!="7.22.2021",]
+RichPlot3DCCEndo$sampling.date = as.factor(RichPlot3DCCEndo$sampling.date)
+RichPlot3DCCEndo
+x=c(1:5) #7.8.2021,7.29.2021,8.5.2021,9.9.2021,9.15.2021
+y=c(21.25279,33.07883,181.07717,73.04119,36.04553)
+plot(x,y)
+
+#### Now ecto samples (all dates have less than three independent pools)
+
+RichPlot3DCCEcto = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Ecto",]
+RichPlot3DCCEcto$sampling.date = as.factor(RichPlot3DCCEcto$sampling.date)
+RichPlot3DCCEcto
+x=c(1:4) #7.22.2021,7.29.2021,8.5.2021,9.9.2021
+y=c(19.09134,14.02042,66.40300,20.26297)
+plot(x,y)
+
+#### Goal: summarize the estimates for each sample type across different sampling locations within a single facility
+#### Fig. S2 (left panel, Arlington samples only)
+
+#### Arlington manure first
+
+RichPlot3ArlingtonManure = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type=="Manure",]
+RichPlot3ArlingtonManure$trap = as.factor(RichPlot3ArlingtonManure$trap)
+head(RichPlot3ArlingtonManure)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlingtonManure = data.frame(trap=levels(RichPlot3ArlingtonManure$trap))
+RichPlotSummArlingtonManure$Estimate = 0
+RichPlotSummArlingtonManure$Error = 0
+RichPlotSummArlingtonManure$p = 0
+head(RichPlotSummArlingtonManure)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3ArlingtonManure$trap)){
+  d = RichPlot3ArlingtonManure[RichPlot3ArlingtonManure$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlingtonManure[RichPlotSummArlingtonManure$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlingtonManure[RichPlotSummArlingtonManure$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummArlingtonManure[RichPlotSummArlingtonManure$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlingtonManure$trap = factor(RichPlotSummArlingtonManure$trap, levels = c("Arl-M1","Arl-M2","Arl-M3","Arl-M4","Arl-M5","Arl-sickpen"))
+p = ggplot(RichPlotSummArlingtonManure,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington Manure")
+p
+
+#### Now Arlington flies (internal samples)
+
+RichPlot3ArlingtonFlies = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type!="Manure",]
+RichPlot3ArlingtonFlies = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$sample.type=="Endo",]
+RichPlot3ArlingtonFlies$trap = as.factor(RichPlot3ArlingtonFlies$trap)
+head(RichPlot3ArlingtonFlies)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlingtonFlies = data.frame(trap=levels(RichPlot3ArlingtonFlies$trap))
+RichPlotSummArlingtonFlies$Estimate = 0
+RichPlotSummArlingtonFlies$Error = 0
+RichPlotSummArlingtonFlies$p = 0
+head(RichPlotSummArlingtonFlies)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3ArlingtonFlies$trap)){
+  d = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlingtonFlies$trap = factor(RichPlotSummArlingtonFlies$trap, levels = c("B1-East","B1-West","B2-East","B2-West"))
+p = ggplot(RichPlotSummArlingtonFlies,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington Flies (Internal)")
+p
+
+#### Now Arlington flies (external samples)
+
+RichPlot3ArlingtonFlies = RichPlot3[RichPlot3$location=="Arlington"&RichPlot3$sample.type!="Manure",]
+RichPlot3ArlingtonFlies = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$sample.type=="Ecto",]
+RichPlot3ArlingtonFlies$trap = as.factor(RichPlot3ArlingtonFlies$trap)
+head(RichPlot3ArlingtonFlies)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummArlingtonFlies = data.frame(trap=levels(RichPlot3ArlingtonFlies$trap))
+RichPlotSummArlingtonFlies$Estimate = 0
+RichPlotSummArlingtonFlies$Error = 0
+RichPlotSummArlingtonFlies$p = 0
+head(RichPlotSummArlingtonFlies)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3ArlingtonFlies$trap)){
+  d = RichPlot3ArlingtonFlies[RichPlot3ArlingtonFlies$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummArlingtonFlies[RichPlotSummArlingtonFlies$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummArlingtonFlies$trap = factor(RichPlotSummArlingtonFlies$trap, levels = c("B1-East","B1-West","B2-East","B2-West"))
+p = ggplot(RichPlotSummArlingtonFlies,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("Arlington Flies (External)")
+p
+
+#### Goal: summarize the estimates for each sample type across different sampling locations within a single facility
+#### Fig. S2 (right panel, DCC manure samples only)
+
+RichPlot3DCCManure = RichPlot3[RichPlot3$location=="DCC"&RichPlot3$sample.type=="Manure",]
+RichPlot3DCCManure$trap = as.factor(RichPlot3DCCManure$trap)
+head(RichPlot3DCCManure)
+
+# Create an empty data frame that will hold the output data
+RichPlotSummDCCManure = data.frame(trap=levels(RichPlot3DCCManure$trap))
+RichPlotSummDCCManure$Estimate = 0
+RichPlotSummDCCManure$Error = 0
+RichPlotSummDCCManure$p = 0
+head(RichPlotSummDCCManure)
+
+# Run a for loop that goes through each subset of data and makes the estimates using the betta function
+for (i in levels(RichPlot3DCCManure$trap)){
+  d = RichPlot3DCCManure[RichPlot3DCCManure$trap==i,]
+  Betta = betta(d$Estimate,d$Error)
+  print(Betta$table)
+  RichPlotSummDCCManure[RichPlotSummDCCManure$trap==i,]$Estimate = Betta$table[,1]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$trap==i,]$Error = Betta$table[,2]
+  RichPlotSummDCCManure[RichPlotSummDCCManure$trap==i,]$p = Betta$table[,3]
+}
+
+# Plot final richness estimates with error bars
+# ±1.96*SE represents 95% confidence intervals
+RichPlotSummDCCManure$trap = factor(RichPlotSummDCCManure$trap, levels = c("DCC-Q1","DCC-Q2","DCC-Q3","DCC-Q4","DCC-Outdoor"))
+p = ggplot(RichPlotSummDCCManure,aes(y=Estimate,x=trap))
+p = p + geom_point(size=3) + geom_errorbar(aes(ymin=Estimate-1.96*Error,ymax=Estimate+1.96*Error), width=0.2)
+p = p + theme_bw()
+p = p + ylab("Richness estimate")
+p = p + ggtitle("DCC Manure")
+p
+
+#### Goal: PCoA to compare communities in different sample types across sampling dates within each facility ####
+#### Fig. S3 (Arlington samples only)
+
+ps.norm = transform_sample_counts(ps, function(x) x / sum(x) )
+# rename for ease of use.
+ps = ps.norm
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.9.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p1 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p1 = p1 + theme_bw() + geom_point(size =1.5)
+p1 = p1 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p1 = p1 + theme(legend.text = element_text(size = 10))
+p1$layers = p1$layers[-1] #to remove the larger point coded in original plot
+p1
+
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.16.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p2 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p2 = p2 + theme_bw() + geom_point(size =1.5)
+p2 = p2 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p2 = p2 + theme(legend.text = element_text(size = 10))
+p2$layers = p2$layers[-1] #to remove the larger point coded in original plot
+p2
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.23.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p3 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p3 = p3 + theme_bw() + geom_point(size =1.5)
+p3 = p3 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p3 = p3 + theme(legend.text = element_text(size = 10))
+p3$layers = p3$layers[-1] #to remove the larger point coded in original plot
+p3
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="7.30.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p4 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p4 = p4 + theme_bw() + geom_point(size =1.5)
+p4 = p4 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p4 = p4 + theme(legend.text = element_text(size = 10))
+p4$layers = p4$layers[-1] #to remove the larger point coded in original plot
+p4
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.6.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p5 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p5 = p5 + theme_bw() + geom_point(size =1.5)
+p5 = p5 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p5 = p5 + theme(legend.text = element_text(size = 10))
+p5$layers = p5$layers[-1] #to remove the larger point coded in original plot
+p5
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.13.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p6 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p6 = p6 + theme_bw() + geom_point(size =1.5)
+p6 = p6 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p6 = p6 + theme(legend.text = element_text(size = 10))
+p6$layers = p6$layers[-1] #to remove the larger point coded in original plot
+p6
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.20.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p7 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p7 = p7 + theme_bw() + geom_point(size =1.5)
+p7 = p7 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p7 = p7 + theme(legend.text = element_text(size = 10))
+p7$layers = p7$layers[-1] #to remove the larger point coded in original plot
+p7
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="8.27.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p8 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p8 = p8 + theme_bw() + geom_point(size =1.5)
+p8 = p8 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p8 = p8 + theme(legend.text = element_text(size = 10))
+p8$layers = p8$layers[-1] #to remove the larger point coded in original plot
+p8
+ps.arlington <- subset_samples(ps, location=="Arlington"&sampling.date=="9.10.2021")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+p9 = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p9 = p9 + theme_bw() + geom_point(size =1.5)
+p9 = p9 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34",  #Endo
+                                      "#19468C",  #Ecto
+                                      "#B75463"), #Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p9 = p9 + theme(legend.text = element_text(size = 10))
+p9$layers = p9$layers[-1] #to remove the larger point coded in original plot
+p9
+
+ggarrange(p1, p2, p3, p4, p5, p6, p7, p8, p9 + rremove("x.text"), 
+          labels = c("Jul9", "Jul16", "Jul23", "Jul30", "Aug6", "Aug13", "Aug20", "Aug27", "Sept10"),
+          ncol = 3, nrow = 3)
+
+#### Goal: PCoA to compare communities in different sample types across sampling dates within each facility ####
+#### Fig. S4 (DCC samples only)
+
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.8.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p1 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p1 = p1 + theme_bw() + geom_point(size =1.5)
+p1 = p1 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p1 = p1 + theme(legend.text = element_text(size = 10))
+p1$layers = p1$layers[-1] #to remove the larger point coded in original plot
+p1
+
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.15.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p2 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p2 = p2 + theme_bw() + geom_point(size =1.5)
+p2 = p2 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p2 = p2 + theme(legend.text = element_text(size = 10))
+p2$layers = p2$layers[-1] #to remove the larger point coded in original plot
+p2
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.22.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p3 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p3 = p3 + theme_bw() + geom_point(size =1.5)
+p3 = p3 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p3 = p3 + theme(legend.text = element_text(size = 10))
+p3$layers = p3$layers[-1] #to remove the larger point coded in original plot
+p3
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="7.29.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p4 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p4 = p4 + theme_bw() + geom_point(size =1.5)
+p4 = p4 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p4 = p4 + theme(legend.text = element_text(size = 10))
+p4$layers = p4$layers[-1] #to remove the larger point coded in original plot
+p4
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="8.5.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p5 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p5 = p5 + theme_bw() + geom_point(size =1.5)
+p5 = p5 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p5 = p5 + theme(legend.text = element_text(size = 10))
+p5$layers = p5$layers[-1] #to remove the larger point coded in original plot
+p5
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="9.9.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p6 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p6 = p6 + theme_bw() + geom_point(size =1.5)
+p6 = p6 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p6 = p6 + theme(legend.text = element_text(size = 10))
+p6$layers = p6$layers[-1] #to remove the larger point coded in original plot
+p6
+ps.dcc <- subset_samples(ps, location=="DCC"&sampling.date=="9.15.2021")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+p7 = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "sample.type", label = NULL, justDF = FALSE)
+p7 = p7 + theme_bw() + geom_point(size =1.5)
+p7 = p7 + scale_color_manual(breaks = c("Endo", "Ecto", "Manure"),
+                           values = c("#DFAB34", #Endo
+                                      "#19468C", #Ecto
+                                      "#B75463"),#Manure
+                           name="", 
+                           labels=c("Internal","External","Manure"))
+p7 = p7 + theme(legend.text = element_text(size = 10))
+p7$layers = p7$layers[-1] #to remove the larger point coded in original plot
+p7
+
+ggarrange(p1, p2, p3, p4, p5, p6, p7 + rremove("x.text"), 
+          labels = c("Jul8", "Jul15", "Jul22", "Jul29", "Aug5", "Sept9", "Sept15"),
+          ncol = 3, nrow = 3)
+
+#### Goal: PCoA to compare communities in different sample types across different sampling locations within a single facility ####
+#### Fig. S5 (top left panel, Arlington manure samples only)
+
+# Create PCoA ordination
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type=="Manure")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "trap", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
+
+#### Fig. S5 (bottom left panel, Arlington fly samples only)
+
+# Create PCoA ordination
+ps.arlington <- subset_samples(ps, location=="Arlington"&sample.type!="Manure")
+ps.ordination.PCoA = ordinate(ps.arlington, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.arlington, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "trap", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
+
+#### Fig. S5 (top right panel, DCC fly samples only)
+
+# Create PCoA ordination
+ps.dcc <- subset_samples(ps, location=="DCC"&sample.type=="Manure")
+ps.ordination.PCoA = ordinate(ps.dcc, method="PCoA", distance="bray")
+
+# plot ordination
+p = plot_ordination(ps.dcc, ps.ordination.PCoA, type = "samples", 
+                axes = 1:2, color = "trap", label = NULL, justDF = FALSE)
+p = p + theme_bw() + geom_point(size =1.5)
+p = p + theme(legend.text = element_text(size = 10))
+p$layers = p$layers[-1] #to remove the larger point coded in original plot
+p
 
 #### Figs. S7-S9 (Arlington panels)
 

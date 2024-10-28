@@ -8,7 +8,7 @@ Stable flies are bona fide carriers of mastitis-associated bacteria
 * Kerri L. Coon - kerri.coon@wisc.edu
 
 ## Analysis overview 
-Scripts for each analysis are written in R. Each directory contains necessary files and code to recreate each figure, table, and associated statistical analyses reported in the manuscript. To repeat the analysis, clone the repository, and then run each script. Do not `cd` into the cloned repository. 
+Scripts for each analysis are written in R. Each directory contains necessary files and code to recreate each figure and all statistical analyses reported in the manuscript. To repeat the analysis, clone the repository, and then run each script. Do not `cd` into the cloned repository. 
 
 **Example**
 * Create a new project in RStudio. To run the script to recreate Fig. 1 in the manuscript: 
@@ -51,14 +51,16 @@ Once the repository has been cloned (above), recreate each figure/table/data ana
 
 #### Supplementary information 
 * Fig. S1 - Script: `supp-info.R`: run code from line `1` to `XX`
-* Fig. S2A - Script: `supp-info.R`: run code from line `1` to `XX`
-* Fig. S2B - Script: `supp-info.R`: run code from line `1` to `XX`
-* Fig. S2C - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S2 - Script: `supp-info.R`: run code from line `1` to `XX`
 * Fig. S3 - Script: `supp-info.R`: run code from line `1` to `XX`
-* Fig. S4A - Script: `supp-info.R`: run code from line `1` to `XX`
-* Fig. S4B - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S4 - Script: `supp-info.R`: run code from line `1` to `XX`
 * Fig. S5 - Script: `supp-info.R`: run code from line `1` to `XX`
 * Fig. S6 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S7 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S8 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S9 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S10 - Script: `supp-info.R`: run code from line `1` to `XX`
+* Fig. S11 - Script: `supp-info.R`: run code from line `1` to `XX`
 
 ## Citation 
 Sommer AJ, Kettner JE, Coon KL. (2024). Microbiota composition associates with mosquito productivity outcomes in belowground larval habitats. mSphere 9(7):e0033624. https://doi.org/10.1128/msphere.00336-24.

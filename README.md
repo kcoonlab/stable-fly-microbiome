@@ -20,6 +20,9 @@ Scripts for each analysis are written in R. Each directory contains necessary fi
 **Before getting started**
 * Run the script `phyloseq-object.R` (code from line `1` to `42`) to generate a phyloseq object from the appropriate qiime artifacts. This object will be referenced in some downstream analyses.
 
+**Acknowledgements**
+* Portions of the following scripts are based on code produced by Jaimie R. West and Thea Whitman at the University of Wisconsin-Madison. See https://github.com/jaimiewest/Soil-Mixing and https://doi.org/10.1093/femsec/fiac112 for more information.
+
 ## Recreate the manuscript figures and associated statistical analyses
 Once the repository has been cloned (above), recreate each figure/table/data analysis as follows: 
 

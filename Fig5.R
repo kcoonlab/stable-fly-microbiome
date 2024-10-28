@@ -969,7 +969,7 @@ ManurePerspectiveRA.3 <- merge(x = ManurePerspectiveRA.1,y = ManurePerspectiveRA
 
 ManurePerspectiveRA.3$percent <- ManurePerspectiveRA.3$tot_shared_reads/ManurePerspectiveRA.3$tot_reads
 
-#write.csv(ManurePerspectiveRA.3, file = "FlyPerspectiveRAManure.csv", quote = FALSE, row.names = FALSE)
+#write.csv(ManurePerspectiveRA.3, file = "DCCFlyPerspectiveRAManure.csv", quote = FALSE, row.names = FALSE)
 
 data=read.csv("DCCFlyPerspectiveRAManureFormatted.csv")
 kruskal.test(percent_shared~as.factor(date),data=data) #NS (p = 0.9071)

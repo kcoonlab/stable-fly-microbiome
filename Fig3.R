@@ -88,11 +88,3 @@ orderCompPlot <- ggplot(orderAbdDF_formatted,
   scale_x_discrete(labels = sampleLabelsVec) +
   scale_fill_manual(values=cbPalette)
 orderCompPlot
-
-
-
-
-
-
-
-

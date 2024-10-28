@@ -8,7 +8,7 @@ Stable flies are bona fide carriers of mastitis-associated bacteria
 * Kerri L. Coon - kerri.coon@wisc.edu
 
 ## Analysis overview 
-Scripts for each analysis are written in R. Each directory contains necessary files and code to recreate each figure and all statistical analyses reported in the manuscript. To repeat the analysis, clone the repository, and then run each script. Do not `cd` into the cloned repository. 
+Scripts for each analysis are written in R. Each directory contains necessary files and code to recreate each figure and all data analyses reported in the manuscript. To repeat the analysis, clone the repository, and then run each script. Do not `cd` into the cloned repository. 
 
 **Example**
 * Create a new project in RStudio. To run the script to recreate Fig. 1 in the manuscript: 
@@ -23,7 +23,7 @@ Scripts for each analysis are written in R. Each directory contains necessary fi
 **Acknowledgements**
 * Portions of the following scripts are based on code produced by Jaimie R. West and Thea Whitman at the University of Wisconsin-Madison (see https://github.com/jaimiewest/Soil-Mixing and https://doi.org/10.1093/femsec/fiac112 for more information).
 
-## Recreate the manuscript figures and associated statistical analyses
+## Recreate the manuscript figures and associated data analyses
 Once the repository has been cloned (above), recreate each figure/table/data analysis as follows: 
 
 **Fig. 2: Community-level ASV richness in Arlington- and DCC-derived samples, by sample source**

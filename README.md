@@ -4,7 +4,6 @@ Stable flies are bona fide carriers of mastitis-associated bacteria
 
 ## Authors 
 * Andrew J. Sommer
-* Julia E. Kettner
 * Kerri L. Coon - kerri.coon@wisc.edu
 
 ## Analysis overview 
